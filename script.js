@@ -1,8 +1,18 @@
-const tg = window.Telegram.WebApp;
-tg.expand();
+// --- Telegram WebApp compatibility ---
+const tg = window.Telegram?.WebApp || null;
+if (tg) tg.expand();
 
-let deadlines = JSON.parse(localStorage.getItem('deadlines')) || [];
+// --- API base URL (auto detect local or production) ---
+const API_BASE = location.hostname === "127.0.0.1" || location.hostname === "localhost"
+  ? "http://127.0.0.1:8000/api"
+  : "https://nahadayka-backend.onrender.com/api";
 
+// --- User ID (fallback for debug) ---
+const USER_ID = tg?.initDataUnsafe?.user?.id?.toString() || "debug_user";
+
+let deadlines = [];
+
+// --- Elements ---
 const list = document.getElementById('list');
 const addBtn = document.getElementById('addBtn');
 const removeBtn = document.getElementById('removeBtn');
@@ -15,6 +25,9 @@ const removeModal = document.getElementById('removeModal');
 const removeList = document.getElementById('removeList');
 const closeRemove = document.getElementById('closeRemove');
 
+let sortAsc = true;
+
+// --- View switching ---
 function showView(name) {
   if (name === 'add') {
     viewList.classList.remove('active');
@@ -25,27 +38,34 @@ function showView(name) {
   }
 }
 
-function saveData() { localStorage.setItem('deadlines', JSON.stringify(deadlines)); }
+// --- Utils ---
+function calcDaysLeft(dateStr) {
+  const now = new Date();
+  const target = new Date(dateStr);
+  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+}
 
-let sortAsc = true;
 function sortItems(items) {
   const sorted = [...items].sort((a, b) => calcDaysLeft(a.date) - calcDaysLeft(b.date));
   return sortAsc ? sorted : sorted.reverse();
 }
 
+// --- Render main list ---
 function renderDeadlines(items = deadlines) {
   list.innerHTML = '';
+
   if (items.length === 0) {
     list.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
     return;
   }
 
   const toRender = sortItems(items);
+
   toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
+    const diff = calcDaysLeft(item.date);
 
     const card = document.createElement('article');
-    card.className = `card ${diffDays <= 7 && diffDays >= 0 ? 'light' : 'dark'}`;
+    card.className = `card ${diff <= 7 && diff >= 0 ? 'light' : 'dark'}`;
 
     const left = document.createElement('div');
     const title = document.createElement('h3');
@@ -55,21 +75,25 @@ function renderDeadlines(items = deadlines) {
     const date = document.createElement('div');
     date.className = 'meta';
     date.textContent = `📅 ${item.date}`;
+
     left.append(title, date);
 
     const due = document.createElement('div');
     due.className = 'due';
+
     const label = document.createElement('div');
     label.className = 'label';
     const value = document.createElement('div');
     value.className = 'value';
-    if (diffDays >= 0) {
+
+    if (diff >= 0) {
       label.textContent = 'ЗАЛИШИЛОСЬ';
-      value.textContent = `${diffDays} ДНІВ`;
+      value.textContent = `${diff} ДНІВ`;
     } else {
       label.textContent = 'СТАТУС';
       value.textContent = 'ДЕДЛАЙН МИНУВ';
     }
+
     due.append(label, value);
 
     card.append(left, due);
@@ -77,92 +101,146 @@ function renderDeadlines(items = deadlines) {
   });
 }
 
-function calcDaysLeft(dateStr) {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+// --- Backend operations ---
+async function loadFromBackend() {
+  try {
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
+    if (!res.ok) throw new Error("Bad response");
+
+    deadlines = await res.json();
+    localStorage.setItem('deadlines', JSON.stringify(deadlines));
+    renderDeadlines();
+  } catch (err) {
+    console.error("⚠️ Не вдалося завантажити бекенд:", err);
+    deadlines = JSON.parse(localStorage.getItem('deadlines')) || [];
+    renderDeadlines();
+  }
 }
 
+async function addDeadlineToBackend(deadline) {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(deadline)
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Add failed");
+  }
+  return res.json();
+}
+
+async function deleteDeadlineFromBackend(title) {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Delete failed");
+  }
+
+  return res.json();
+}
+
+// --- Handlers ---
 addBtn.onclick = () => showView('add');
 
-addForm.addEventListener('submit', (e) => {
+addForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const title = addForm.title.value.trim();
   const date = addForm.date.value;
   const time = addForm.time.value;
+
   if (!title || !date) return;
-  const dateStr = time ? `${date} ${time}` : date;
-  const newDeadline = { title, date: dateStr };
 
-  deadlines.push(newDeadline);
-  saveData();
-  addForm.reset();
-  showView('list');
-  renderDeadlines();
+  const datetime = time ? `${date} ${time}` : date;
 
-// --- ВІДПРАВКА ДАНИХ У БОТА ---
-try {
-  tg?.sendData && tg.sendData(JSON.stringify(newDeadline));
-  console.log("✅ Дані надіслані в Telegram:", newDeadline);
-} catch (err) {
-  console.error("⚠️ Помилка відправки даних у бота:", err);
-}
+  const newDeadline = { title, date: datetime };
+
+  try {
+    const saved = await addDeadlineToBackend(newDeadline);
+    deadlines.push(saved);
+    localStorage.setItem('deadlines', JSON.stringify(deadlines));
+
+    renderDeadlines();
+    addForm.reset();
+    showView('list');
+
+    if (tg) tg.sendData(JSON.stringify(saved));
+
+  } catch (err) {
+    alert("Не вдалося додати: " + err.message);
+    console.error(err);
+  }
 });
 
 removeBtn.onclick = () => openRemoveModal();
 
 sortBtn.onclick = () => {
   sortAsc = !sortAsc;
-  sortBtn.textContent = sortAsc ? 'Сортувати ↑' : 'Сортувати ↓';
+  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
   renderDeadlines();
 };
 
 if (cancelAdd) {
-  cancelAdd.onclick = () => { addForm.reset(); showView('list'); };
+  cancelAdd.onclick = () => {
+    addForm.reset();
+    showView('list');
+  };
 }
 
-if (sortBtn) sortBtn.textContent = sortAsc ? 'Сортувати ↑' : 'Сортувати ↓';
-
-renderDeadlines();
-
-
-function openRemoveModal(){
+function openRemoveModal() {
   renderRemoveList();
   removeModal.classList.add('show');
-  removeModal.setAttribute('aria-hidden','false');
+  removeModal.setAttribute('aria-hidden', 'false');
 }
-function closeRemoveModal(){
+
+function closeRemoveModal() {
   removeModal.classList.remove('show');
-  removeModal.setAttribute('aria-hidden','true');
+  removeModal.setAttribute('aria-hidden', 'true');
 }
+
+// --- Render removing list ---
 function renderRemoveList() {
   removeList.innerHTML = '';
+
   if (deadlines.length === 0) {
-    removeList.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
+    removeList.innerHTML = '<div class="empty">Дедлайнів немає</div>';
     return;
   }
 
-  const toRender = sortItems(deadlines);
-  toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
+  const sorted = sortItems(deadlines);
+
+  sorted.forEach(item => {
+    const diff = calcDaysLeft(item.date);
+
     const card = document.createElement('article');
-    card.className = `card ${diffDays <= 7 && diffDays >= 0 ? 'light' : 'dark'}`;
+    card.className = `card ${diff <= 7 && diff >= 0 ? 'light' : 'dark'}`;
 
     const left = document.createElement('div');
-    const titleEl = document.createElement('h3');
-    titleEl.className = 'card-title';
-    titleEl.textContent = item.title;
+    const title = document.createElement('h3');
+    title.className = 'card-title';
+    title.textContent = item.title;
+
     const date = document.createElement('div');
     date.className = 'meta';
     date.textContent = `📅 ${item.date}`;
-    left.append(titleEl, date);
+
+    left.append(title, date);
 
     const actions = document.createElement('div');
     actions.className = 'due';
+
     const btn = document.createElement('button');
     btn.className = 'btn danger small';
     btn.textContent = 'Видалити';
-    btn.onclick = () => deleteDeadline(item.title);
+    btn.onclick = () => handleDeleteDeadline(item.title);
+
     actions.appendChild(btn);
 
     card.append(left, actions);
@@ -170,46 +248,33 @@ function renderRemoveList() {
   });
 }
 
-function deleteDeadline(title) {
-  // 1️⃣ Видаляємо локально
-  deadlines = deadlines.filter(d => d.title !== title);
-  localStorage.setItem("deadlines", JSON.stringify(deadlines));
-  renderDeadlines();
-  renderRemoveList();
-
-  // 2️⃣ Відправляємо дані у Telegram
+async function handleDeleteDeadline(title) {
   try {
-    const tg = window.Telegram.WebApp;
-    const payload = { action: "delete", title };
-    tg.sendData(JSON.stringify(payload));
-    console.log("❌ Відправлено у Telegram:", payload);
+    await deleteDeadlineFromBackend(title);
+
+    deadlines = deadlines.filter(d => d.title !== title);
+    localStorage.setItem('deadlines', JSON.stringify(deadlines));
+
+    renderDeadlines();
+    renderRemoveList();
+
+    if (tg) tg.sendData(JSON.stringify({ action: "delete", title }));
+
+    alert(`❌ Видалено: ${title}`);
+
   } catch (err) {
-    console.error("⚠️ Помилка відправки delete:", err);
+    alert("Помилка видалення: " + err.message);
+    console.error(err);
   }
-
-  // 3️⃣ Повідомлення користувачу
-  alert(`❌ Дедлайн "${title}" видалено.`);
 }
-
 
 closeRemove.addEventListener('click', closeRemoveModal);
-removeModal.addEventListener('click', (e) => { if (e.target === removeModal) closeRemoveModal(); });
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeRemoveModal(); });
+removeModal.addEventListener('click', e => {
+  if (e.target === removeModal) closeRemoveModal();
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeRemoveModal();
+});
 
-function deleteDeadline(title) {
-  // видаляємо з локального сховища
-  deadlines = deadlines.filter(d => d.title !== title);
-  localStorage.setItem("deadlines", JSON.stringify(deadlines));
-
-  // показуємо оновлений список
-  renderDeadlines();
-
-  // повідомляємо Telegram про видалення
-  const tg = window.Telegram.WebApp;
-  tg.sendData(JSON.stringify({
-    action: "delete",
-    title: title
-  }));
-
-  alert(`❌ Дедлайн "${title}" видалено.`);
-}
+// --- Initial load ---
+loadFromBackend();
