@@ -82,8 +82,24 @@ body {
 .actions {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "add remove sort"
+    ". import .";
+  gap: 12px;
+}
+#addBtn { grid-area: add; }
+#removeBtn { grid-area: remove; }
+#sortBtn { grid-area: sort; }
+#importBtn { grid-area: import; }
+
+@media (max-width: 520px) {
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "add sort"
+      "remove import";
+  }
 }
 .btn {
   appearance: none; border: 0; cursor: pointer;
