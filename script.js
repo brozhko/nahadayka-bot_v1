@@ -11,13 +11,9 @@ if (tg) {
 // Базовий URL бекенду
 const API_BASE = "https://nahadayka-backend.onrender.com/api";
 
-// Отримати актуальний userId
-function getUserId() {
-  const id = tg?.initDataUnsafe?.user?.id;
-  const uid = id ? String(id) : "debug_user";
-  console.log("USER_ID =", uid);
-  return uid;
-}
+// ⚠️ ТИМЧАСОВО: фіксований Telegram ID (твій)
+const USER_ID = "624121083";
+console.log("USER_ID =", USER_ID);
 
 // =======================
 //  СТАН
@@ -128,9 +124,8 @@ const renderDeadlines = (items = deadlines) => {
 //  РОБОТА З БЕКЕНДОМ
 // =======================
 const loadFromBackend = async () => {
-  const userId = getUserId();
   try {
-    const res = await fetch(`${API_BASE}/deadlines/${userId}`);
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
     if (!res.ok) throw new Error("Bad response");
 
     deadlines = await res.json();
@@ -144,8 +139,7 @@ const loadFromBackend = async () => {
 };
 
 const addDeadlineToBackend = async (newDeadline) => {
-  const userId = getUserId();
-  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(newDeadline),
@@ -159,8 +153,7 @@ const addDeadlineToBackend = async (newDeadline) => {
 };
 
 const deleteDeadlineFromBackend = async (title) => {
-  const userId = getUserId();
-  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
@@ -224,7 +217,6 @@ addForm.addEventListener("submit", async (e) => {
     showView("list");
     renderDeadlines();
 
-    // надсилаємо в бота, щоб він теж знав
     tg?.sendData?.(JSON.stringify(saved));
   } catch (err) {
     console.error("Не вдалось додати дедлайн:", err);
