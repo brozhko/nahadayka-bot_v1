@@ -17,13 +17,20 @@ const API_BASE = "https://nahadayka-backend.onrender.com/api";
 // Якщо запущено в Telegram WebApp → беремо tg.initDataUnsafe.user.id
 // Якщо відкрито напряму в браузері → fallback "debug_user"
 function getUserId() {
-  const id = tg?.initDataUnsafe?.user?.id;
-  const uid = id ? String(id) : "debug_user";
+  const uid = tg?.initDataUnsafe?.user?.id;
+
+  if (!uid) {
+    alert("⚠️ Telegram не передав user_id. Мінізастосунок відкрито неправильно!");
+    console.error("Telegram initDataUnsafe:", tg?.initDataUnsafe);
+    return "";
+  }
+
   console.log("USER_ID =", uid);
-  return uid;
+  return String(uid);
 }
 
 const USER_ID = getUserId();
+
 
 // =======================
 //  СТАН
@@ -48,6 +55,7 @@ const cancelAdd = document.getElementById("cancelAdd");
 const removeModal = document.getElementById("removeModal");
 const removeList = document.getElementById("removeList");
 const closeRemove = document.getElementById("closeRemove");
+
 
 // =======================
 //  ХЕЛПЕРИ
@@ -80,6 +88,7 @@ const updateSortLabel = () => {
     sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
   }
 };
+
 
 // =======================
 //  РЕНДЕР СПИСКУ
@@ -132,6 +141,7 @@ const renderDeadlines = (items = deadlines) => {
   });
 };
 
+
 // =======================
 //  РОБОТА З БЕКЕНДОМ
 // =======================
@@ -178,6 +188,7 @@ const deleteDeadlineFromBackend = async (title) => {
   return res.json();
 };
 
+
 // =======================
 //  ОБРОБНИКИ КНОПОК
 // =======================
@@ -196,18 +207,17 @@ if (importBtn) {
       );
 
       // 3) періодично пробуємо підвантажити оновлений список дедлайнів
-      const prevCount = deadlines.length; // скільки було до імпорту
+      const prevCount = deadlines.length;
       let attempts = 0;
 
       const intervalId = setInterval(async () => {
         attempts += 1;
         try {
-          await loadFromBackend(); // спробувати отримати свіжі дедлайни
+          await loadFromBackend();
         } catch (e) {
           console.error("Помилка оновлення після імпорту:", e);
         }
 
-        // якщо список змінився АБО зробили вже 6 спроб (~30 сек)
         if (deadlines.length !== prevCount || attempts >= 6) {
           clearInterval(intervalId);
 
@@ -219,16 +229,14 @@ if (importBtn) {
             );
           }
         }
-      }, 5000); // кожні 5 секунд
+      }, 5000);
     } else {
-      // якщо сторінка відкрита не в Telegram (debug в браузері)
       fetch(`${API_BASE}/google_sync/${USER_ID}`, { method: "POST" })
         .then((res) => (res.ok ? loadFromBackend() : Promise.reject(res.status)))
         .catch((err) => alert("Помилка імпорту: " + err));
     }
   };
 }
-
 
 addBtn.onclick = () => showView("add");
 
@@ -246,6 +254,7 @@ if (cancelAdd) {
 }
 
 removeBtn.onclick = () => openRemoveModal();
+
 
 // =======================
 //  Додавання дедлайну
@@ -271,13 +280,13 @@ addForm.addEventListener("submit", async (e) => {
     showView("list");
     renderDeadlines();
 
-    // Надсилаємо боту, щоб він теж знав (можеш лишити або забрати)
     tg?.sendData?.(JSON.stringify(saved));
   } catch (err) {
     console.error("Не вдалось додати дедлайн:", err);
     alert("Не вдалось додати дедлайн: " + err.message);
   }
 });
+
 
 // =======================
 //  ВИДАЛЕННЯ ДЕДЛАЙНІВ
@@ -358,6 +367,7 @@ removeModal.addEventListener("click", (e) => {
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeRemoveModal();
 });
+
 
 // =======================
 //  Старт
