@@ -3,31 +3,27 @@
 // =======================
 const tg = window.Telegram?.WebApp || null;
 
-// ====== DEBUG: Перевірка Telegram ID ======
-if (tg) {
-  alert("INIT DATA:\n\n" + JSON.stringify(tg.initDataUnsafe, null, 2));
-}
-
 if (tg) {
   tg.expand();
   tg.ready?.();
 }
 
-// =======================
-//  ОТРИМАННЯ user_id
-// =======================
-function getUserId() {
-  const id = tg?.initDataUnsafe?.user?.id;
-  if (!id) {
-    console.warn("❗ USER_ID НЕ ПЕРЕДАНО ВІД TELEGRAM!");
-    return "";
-  }
-  console.log("✔ USER_ID =", id);
-  return String(id);
-}
-
 // Базовий URL бекенду
 const API_BASE = "https://nahadayka-backend.onrender.com/api";
+
+// =======================
+//  USER ID
+// =======================
+// Якщо запущено в Telegram WebApp → беремо tg.initDataUnsafe.user.id
+// Якщо відкрито напряму в браузері → fallback "debug_user"
+function getUserId() {
+  const id = tg?.initDataUnsafe?.user?.id;
+  const uid = id ? String(id) : "debug_user";
+  console.log("USER_ID =", uid);
+  return uid;
+}
+
+const USER_ID = getUserId();
 
 // =======================
 //  СТАН
@@ -80,7 +76,9 @@ const sortItems = (items) => {
 };
 
 const updateSortLabel = () => {
-  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+  if (sortBtn) {
+    sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+  }
 };
 
 // =======================
@@ -115,10 +113,8 @@ const renderDeadlines = (items = deadlines) => {
 
     const due = document.createElement("div");
     due.className = "due";
-
     const label = document.createElement("div");
     label.className = "label";
-
     const value = document.createElement("div");
     value.className = "value";
 
@@ -140,11 +136,8 @@ const renderDeadlines = (items = deadlines) => {
 //  РОБОТА З БЕКЕНДОМ
 // =======================
 const loadFromBackend = async () => {
-  const userId = getUserId();
-  if (!userId) return;
-
   try {
-    const res = await fetch(`${API_BASE}/deadlines/${userId}`);
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
     if (!res.ok) throw new Error("Bad response");
 
     deadlines = await res.json();
@@ -158,10 +151,7 @@ const loadFromBackend = async () => {
 };
 
 const addDeadlineToBackend = async (newDeadline) => {
-  const userId = getUserId();
-  if (!userId) throw new Error("USER_ID відсутній!");
-
-  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(newDeadline),
@@ -175,10 +165,7 @@ const addDeadlineToBackend = async (newDeadline) => {
 };
 
 const deleteDeadlineFromBackend = async (title) => {
-  const userId = getUserId();
-  if (!userId) throw new Error("USER_ID відсутній!");
-
-  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
+  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
@@ -192,11 +179,14 @@ const deleteDeadlineFromBackend = async (title) => {
 };
 
 // =======================
-//  ОБРОБНИКИ
+//  ОБРОБНИКИ КНОПОК
 // =======================
+
+// Імпорт з Google — надсилаємо сигнал боту
 if (importBtn) {
-  importBtn.onclick = () =>
+  importBtn.onclick = () => {
     tg?.sendData?.(JSON.stringify({ action: "sync" }));
+  };
 }
 
 addBtn.onclick = () => showView("add");
@@ -240,14 +230,16 @@ addForm.addEventListener("submit", async (e) => {
     showView("list");
     renderDeadlines();
 
+    // Надсилаємо боту, щоб він теж знав
     tg?.sendData?.(JSON.stringify(saved));
   } catch (err) {
+    console.error("Не вдалось додати дедлайн:", err);
     alert("Не вдалось додати дедлайн: " + err.message);
   }
 });
 
 // =======================
-//  Видалення
+//  ВИДАЛЕННЯ ДЕДЛАЙНІВ
 // =======================
 function openRemoveModal() {
   renderRemoveList();
@@ -270,9 +262,9 @@ function renderRemoveList() {
 
   const toRender = sortItems(deadlines);
   toRender.forEach((item) => {
-    const card = document.createElement("article");
     const diffDays = calcDaysLeft(item.date);
 
+    const card = document.createElement("article");
     card.className = `card ${
       diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
     }`;
@@ -310,11 +302,14 @@ async function handleDeleteDeadline(title) {
     renderRemoveList();
 
     tg?.sendData?.(JSON.stringify({ action: "delete", title }));
+    alert(`Дедлайн "${title}" видалено.`);
   } catch (err) {
+    console.error("Не вдалось видалити дедлайн:", err);
     alert("Не вдалось видалити дедлайн: " + err.message);
   }
 }
 
+// Закриття модалки
 closeRemove.addEventListener("click", closeRemoveModal);
 removeModal.addEventListener("click", (e) => {
   if (e.target === removeModal) closeRemoveModal();
