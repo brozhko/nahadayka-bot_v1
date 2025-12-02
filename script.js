@@ -3,6 +3,12 @@
 // =======================
 const tg = window.Telegram?.WebApp || null;
 
+// ====== DEBUG: Перевірка Telegram ID ======
+if (tg) {
+  alert("INIT DATA:\n\n" + JSON.stringify(tg.initDataUnsafe, null, 2));
+}
+
+
 if (tg) {
   tg.expand();
   tg.ready?.();
