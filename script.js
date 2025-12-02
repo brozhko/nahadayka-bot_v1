@@ -17,18 +17,8 @@ const API_BASE = "https://nahadayka-backend.onrender.com/api";
 // Якщо запущено в Telegram WebApp → беремо tg.initDataUnsafe.user.id
 // Якщо відкрито напряму в браузері → fallback "debug_user"
 function getUserId() {
-  const uid = tg?.initDataUnsafe?.user?.id;
-
-  if (!uid) {
-    alert("⚠️ Telegram не передав user_id. Мінізастосунок відкрито неправильно!");
-    console.error("Telegram initDataUnsafe:", tg?.initDataUnsafe);
-    return "";
-  }
-
-  console.log("USER_ID =", uid);
-  return String(uid);
+  return String(tg?.initDataUnsafe?.user?.id || "");
 }
-
 const USER_ID = getUserId();
 
 
