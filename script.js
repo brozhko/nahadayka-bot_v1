@@ -182,10 +182,16 @@ const deleteDeadlineFromBackend = async (title) => {
 //  ОБРОБНИКИ КНОПОК
 // =======================
 
-// Імпорт з Google — надсилаємо сигнал боту
+// Імпорт з Google — надсилаємо сигнал боту і потім тягнемо свіже з бекенду
 if (importBtn) {
   importBtn.onclick = () => {
+    // 1) скажемо боту: "зроби sync"
     tg?.sendData?.(JSON.stringify({ action: "sync" }));
+
+    // 2) через кілька секунд підтягнемо оновлений список з бекенду
+    setTimeout(() => {
+      loadFromBackend();
+    }, 5000); // можеш поставити 3000, якщо хочеш швидше
   };
 }
 
@@ -230,7 +236,7 @@ addForm.addEventListener("submit", async (e) => {
     showView("list");
     renderDeadlines();
 
-    // Надсилаємо боту, щоб він теж знав
+    // Надсилаємо боту, щоб він теж знав (можеш лишити або забрати)
     tg?.sendData?.(JSON.stringify(saved));
   } catch (err) {
     console.error("Не вдалось додати дедлайн:", err);
