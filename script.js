@@ -8,19 +8,20 @@ if (tg) {
   tg.ready?.();
 }
 
-// Базовий URL бекенду
-const API_BASE = "https://nahadayka-backend.onrender.com/api";
-
 // =======================
-//  USER ID
+//  USER ID (ГАРАНТОВАНИЙ)
 // =======================
-// Якщо запущено в Telegram WebApp → беремо tg.initDataUnsafe.user.id
-// Якщо відкрито напряму в браузері → fallback "debug_user"
 function getUserId() {
-  return String(tg?.initDataUnsafe?.user?.id || "");
+  return String(tg?.initDataUnsafe?.user?.id || "debug_user");
 }
 const USER_ID = getUserId();
 
+console.log("USER_ID =", USER_ID);
+
+// =======================
+//  API URL
+// =======================
+const API_BASE = "https://nahadayka-backend.onrender.com/api";
 
 // =======================
 //  СТАН
@@ -29,7 +30,7 @@ let deadlines = [];
 let sortAsc = true;
 
 // =======================
-//  DOM-елементи
+//  DOM
 // =======================
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
@@ -46,9 +47,8 @@ const removeModal = document.getElementById("removeModal");
 const removeList = document.getElementById("removeList");
 const closeRemove = document.getElementById("closeRemove");
 
-
 // =======================
-//  ХЕЛПЕРИ
+//  ВІДОБРАЖЕННЯ
 // =======================
 const showView = (name) => {
   if (name === "add") {
@@ -74,15 +74,9 @@ const sortItems = (items) => {
 };
 
 const updateSortLabel = () => {
-  if (sortBtn) {
-    sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-  }
+  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
 };
 
-
-// =======================
-//  РЕНДЕР СПИСКУ
-// =======================
 const renderDeadlines = (items = deadlines) => {
   list.innerHTML = "";
   if (!items.length) {
@@ -90,15 +84,13 @@ const renderDeadlines = (items = deadlines) => {
     return;
   }
 
-  const toRender = sortItems(items);
+  const sorted = sortItems(items);
 
-  toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
+  sorted.forEach((item) => {
+    const diff = calcDaysLeft(item.date);
 
     const card = document.createElement("article");
-    card.className = `card ${
-      diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
-    }`;
+    card.className = `card ${diff <= 7 && diff >= 0 ? "light" : "dark"}`;
 
     const left = document.createElement("div");
     const title = document.createElement("h3");
@@ -108,59 +100,48 @@ const renderDeadlines = (items = deadlines) => {
     const date = document.createElement("div");
     date.className = "meta";
     date.textContent = `До: ${item.date}`;
+
     left.append(title, date);
 
     const due = document.createElement("div");
     due.className = "due";
     const label = document.createElement("div");
-    label.className = "label";
+    label.textContent = diff >= 0 ? "Залишилось" : "Прострочено";
+
     const value = document.createElement("div");
     value.className = "value";
-
-    if (diffDays >= 0) {
-      label.textContent = "Залишилось";
-      value.textContent = `${diffDays} дн.`;
-    } else {
-      label.textContent = "Прострочено";
-      value.textContent = "Спробуй не забути наступного разу";
-    }
-
+    value.textContent = diff >= 0 ? `${diff} дн.` : "🤡";
     due.append(label, value);
+
     card.append(left, due);
     list.appendChild(card);
   });
 };
 
-
 // =======================
-//  РОБОТА З БЕКЕНДОМ
+//  API
 // =======================
 const loadFromBackend = async () => {
   try {
     const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
-    if (!res.ok) throw new Error("Bad response");
+    if (!res.ok) throw new Error("bad");
 
     deadlines = await res.json();
     localStorage.setItem("deadlines", JSON.stringify(deadlines));
     renderDeadlines();
-  } catch (err) {
-    console.error("Не вдалось отримати дедлайни:", err);
+  } catch (e) {
     deadlines = JSON.parse(localStorage.getItem("deadlines")) || [];
     renderDeadlines();
   }
 };
 
-const addDeadlineToBackend = async (newDeadline) => {
+const addDeadlineToBackend = async (dl) => {
   const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newDeadline),
+    body: JSON.stringify(dl),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Add failed");
-  }
+  if (!res.ok) throw new Error("Add failed");
   return res.json();
 };
 
@@ -170,81 +151,40 @@ const deleteDeadlineFromBackend = async (title) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Delete failed");
-  }
+  if (!res.ok) throw new Error("Delete failed");
   return res.json();
 };
 
-
 // =======================
-//  ОБРОБНИКИ КНОПОК
+//  📥 ІМПОРТ GOOGLE
 // =======================
-
-// Імпорт з Google — надсилаємо сигнал боту і кілька разів тягнемо свіже з бекенду
 if (importBtn) {
   importBtn.onclick = () => {
-    if (tg) {
-      // 1) кажемо боту: "зроби sync"
-      tg.sendData(JSON.stringify({ action: "sync" }));
+    tg.sendData(
+      JSON.stringify({
+        action: "sync",
+        user_id: USER_ID,
+      })
+    );
 
-      // 2) можна показати користувачу повідомлення
-      alert(
-        "Імпорт даних... Якщо зʼявиться вікно Google — авторизуйся, " +
-        "потім просто зачекай, поки я підтягну події."
-      );
+    alert("Імпорт розпочато! Якщо зʼявиться Google — авторизуйся.");
 
-      // 3) періодично пробуємо підвантажити оновлений список дедлайнів
-      const prevCount = deadlines.length;
-      let attempts = 0;
+    let attempts = 0;
+    const oldCount = deadlines.length;
 
-      const intervalId = setInterval(async () => {
-        attempts += 1;
-        try {
-          await loadFromBackend();
-        } catch (e) {
-          console.error("Помилка оновлення після імпорту:", e);
-        }
+    const timer = setInterval(async () => {
+      attempts++;
 
-        if (deadlines.length !== prevCount || attempts >= 6) {
-          clearInterval(intervalId);
+      try {
+        await loadFromBackend();
+      } catch {}
 
-          if (deadlines.length !== prevCount) {
-            console.log("🔥 Дані успішно імпортовано, список оновлено.");
-          } else {
-            console.log(
-              "⚠️ Нові дані не знайдено. Можливо, імпорт не відбувся або ти не авторизувався у Google."
-            );
-          }
-        }
-      }, 5000);
-    } else {
-      fetch(`${API_BASE}/google_sync/${USER_ID}`, { method: "POST" })
-        .then((res) => (res.ok ? loadFromBackend() : Promise.reject(res.status)))
-        .catch((err) => alert("Помилка імпорту: " + err));
-    }
+      if (deadlines.length !== oldCount || attempts >= 6) {
+        clearInterval(timer);
+      }
+    }, 5000);
   };
 }
-
-addBtn.onclick = () => showView("add");
-
-sortBtn.onclick = () => {
-  sortAsc = !sortAsc;
-  updateSortLabel();
-  renderDeadlines();
-};
-
-if (cancelAdd) {
-  cancelAdd.onclick = () => {
-    addForm.reset();
-    showView("list");
-  };
-}
-
-removeBtn.onclick = () => openRemoveModal();
-
 
 // =======================
 //  Додавання дедлайну
@@ -259,108 +199,71 @@ addForm.addEventListener("submit", async (e) => {
   if (!title || !date) return;
 
   const dateStr = time ? `${date} ${time}` : date;
-  const newDeadline = { title, date: dateStr };
+  const newDl = { title, date: dateStr };
 
   try {
-    const saved = await addDeadlineToBackend(newDeadline);
+    const saved = await addDeadlineToBackend(newDl);
     deadlines.push(saved);
     localStorage.setItem("deadlines", JSON.stringify(deadlines));
 
-    addForm.reset();
     showView("list");
     renderDeadlines();
 
-    tg?.sendData?.(JSON.stringify(saved));
-  } catch (err) {
-    console.error("Не вдалось додати дедлайн:", err);
-    alert("Не вдалось додати дедлайн: " + err.message);
+    tg.sendData(JSON.stringify({ action: "add", user_id: USER_ID, ...saved }));
+  } catch (e) {
+    alert("Помилка додавання дедлайну.");
   }
 });
 
-
 // =======================
-//  ВИДАЛЕННЯ ДЕДЛАЙНІВ
+//  Видалення
 // =======================
-function openRemoveModal() {
+removeBtn.onclick = () => {
   renderRemoveList();
   removeModal.classList.add("show");
-  removeModal.setAttribute("aria-hidden", "false");
-}
-
-function closeRemoveModal() {
-  removeModal.classList.remove("show");
-  removeModal.setAttribute("aria-hidden", "true");
-}
+};
 
 function renderRemoveList() {
   removeList.innerHTML = "";
 
   if (!deadlines.length) {
-    removeList.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
+    removeList.innerHTML = "<div>Немає</div>";
     return;
   }
 
-  const toRender = sortItems(deadlines);
-  toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
+  const sorted = sortItems(deadlines);
+  sorted.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "remove-item";
 
-    const card = document.createElement("article");
-    card.className = `card ${
-      diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
-    }`;
+    const title = document.createElement("span");
+    title.textContent = item.title;
 
-    const left = document.createElement("div");
-    const titleEl = document.createElement("h3");
-    titleEl.className = "card-title";
-    titleEl.textContent = item.title;
-
-    const date = document.createElement("div");
-    date.className = "meta";
-    date.textContent = `До: ${item.date}`;
-    left.append(titleEl, date);
-
-    const actions = document.createElement("div");
-    actions.className = "due";
     const btn = document.createElement("button");
-    btn.className = "btn danger small";
     btn.textContent = "Видалити";
-    btn.onclick = () => handleDeleteDeadline(item.title);
-    actions.appendChild(btn);
+    btn.onclick = () => handleDelete(item.title);
 
-    card.append(left, actions);
-    removeList.appendChild(card);
+    row.append(title, btn);
+    removeList.append(row);
   });
 }
 
-async function handleDeleteDeadline(title) {
-  try {
-    await deleteDeadlineFromBackend(title);
-    deadlines = deadlines.filter((d) => d.title !== title);
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
+async function handleDelete(title) {
+  await deleteDeadlineFromBackend(title);
 
-    renderDeadlines();
-    renderRemoveList();
+  deadlines = deadlines.filter((d) => d.title !== title);
+  localStorage.setItem("deadlines", JSON.stringify(deadlines));
 
-    tg?.sendData?.(JSON.stringify({ action: "delete", title }));
-    alert(`Дедлайн "${title}" видалено.`);
-  } catch (err) {
-    console.error("Не вдалось видалити дедлайн:", err);
-    alert("Не вдалось видалити дедлайн: " + err.message);
-  }
+  renderDeadlines();
+  renderRemoveList();
+
+  tg.sendData(
+    JSON.stringify({ action: "delete", user_id: USER_ID, title })
+  );
 }
 
-// Закриття модалки
-closeRemove.addEventListener("click", closeRemoveModal);
-removeModal.addEventListener("click", (e) => {
-  if (e.target === removeModal) closeRemoveModal();
-});
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeRemoveModal();
-});
-
-
 // =======================
-//  Старт
+// START
 // =======================
 updateSortLabel();
 loadFromBackend();
