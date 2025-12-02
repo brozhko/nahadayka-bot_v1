@@ -1,6 +1,6 @@
-// =======================
-//  Telegram WebApp
-// =======================
+console.log("Telegram WebApp:", window.Telegram?.WebApp);
+console.log("initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
+
 const tg = window.Telegram?.WebApp || null;
 
 if (tg) {
@@ -160,6 +160,10 @@ const deleteDeadlineFromBackend = async (title) => {
 // =======================
 if (importBtn) {
   importBtn.onclick = () => {
+    console.log("IMPORT CLICKED");
+console.log("USER_ID =", USER_ID);
+console.log("tg =", tg);
+
     tg.sendData(
       JSON.stringify({
         action: "sync",
