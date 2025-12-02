@@ -8,18 +8,26 @@ if (tg) {
   alert("INIT DATA:\n\n" + JSON.stringify(tg.initDataUnsafe, null, 2));
 }
 
-
 if (tg) {
   tg.expand();
   tg.ready?.();
 }
 
+// =======================
+//  ОТРИМАННЯ user_id
+// =======================
+function getUserId() {
+  const id = tg?.initDataUnsafe?.user?.id;
+  if (!id) {
+    console.warn("❗ USER_ID НЕ ПЕРЕДАНО ВІД TELEGRAM!");
+    return "";
+  }
+  console.log("✔ USER_ID =", id);
+  return String(id);
+}
+
 // Базовий URL бекенду
 const API_BASE = "https://nahadayka-backend.onrender.com/api";
-
-// ⚠️ ТИМЧАСОВО: фіксований Telegram ID (твій)
-const USER_ID = "624121083";
-console.log("USER_ID =", USER_ID);
 
 // =======================
 //  СТАН
@@ -72,7 +80,7 @@ const sortItems = (items) => {
 };
 
 const updateSortLabel = () => {
-  if (sortBtn) sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
 };
 
 // =======================
@@ -107,8 +115,10 @@ const renderDeadlines = (items = deadlines) => {
 
     const due = document.createElement("div");
     due.className = "due";
+
     const label = document.createElement("div");
     label.className = "label";
+
     const value = document.createElement("div");
     value.className = "value";
 
@@ -130,8 +140,11 @@ const renderDeadlines = (items = deadlines) => {
 //  РОБОТА З БЕКЕНДОМ
 // =======================
 const loadFromBackend = async () => {
+  const userId = getUserId();
+  if (!userId) return;
+
   try {
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
+    const res = await fetch(`${API_BASE}/deadlines/${userId}`);
     if (!res.ok) throw new Error("Bad response");
 
     deadlines = await res.json();
@@ -145,7 +158,10 @@ const loadFromBackend = async () => {
 };
 
 const addDeadlineToBackend = async (newDeadline) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+  const userId = getUserId();
+  if (!userId) throw new Error("USER_ID відсутній!");
+
+  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(newDeadline),
@@ -159,7 +175,10 @@ const addDeadlineToBackend = async (newDeadline) => {
 };
 
 const deleteDeadlineFromBackend = async (title) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+  const userId = getUserId();
+  if (!userId) throw new Error("USER_ID відсутній!");
+
+  const res = await fetch(`${API_BASE}/deadlines/${userId}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
@@ -173,10 +192,8 @@ const deleteDeadlineFromBackend = async (title) => {
 };
 
 // =======================
-//  ОБРОБНИКИ КНОПОК
+//  ОБРОБНИКИ
 // =======================
-
-// Імпорт з Google — тільки шлемо сигнал боту
 if (importBtn) {
   importBtn.onclick = () =>
     tg?.sendData?.(JSON.stringify({ action: "sync" }));
@@ -225,13 +242,12 @@ addForm.addEventListener("submit", async (e) => {
 
     tg?.sendData?.(JSON.stringify(saved));
   } catch (err) {
-    console.error("Не вдалось додати дедлайн:", err);
     alert("Не вдалось додати дедлайн: " + err.message);
   }
 });
 
 // =======================
-//  ВИДАЛЕННЯ ДЕДЛАЙНІВ
+//  Видалення
 // =======================
 function openRemoveModal() {
   renderRemoveList();
@@ -254,9 +270,9 @@ function renderRemoveList() {
 
   const toRender = sortItems(deadlines);
   toRender.forEach((item) => {
+    const card = document.createElement("article");
     const diffDays = calcDaysLeft(item.date);
 
-    const card = document.createElement("article");
     card.className = `card ${
       diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
     }`;
@@ -294,14 +310,11 @@ async function handleDeleteDeadline(title) {
     renderRemoveList();
 
     tg?.sendData?.(JSON.stringify({ action: "delete", title }));
-    alert(`Дедлайн "${title}" видалено.`);
   } catch (err) {
-    console.error("Не вдалось видалити дедлайн:", err);
     alert("Не вдалось видалити дедлайн: " + err.message);
   }
 }
 
-// Закриття модалки
 closeRemove.addEventListener("click", closeRemoveModal);
 removeModal.addEventListener("click", (e) => {
   if (e.target === removeModal) closeRemoveModal();
