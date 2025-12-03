@@ -9,6 +9,15 @@ body {
     radial-gradient(1200px 600px at 20% -10%, #1A2438 0%, rgba(26,36,56,0) 60%),
     linear-gradient(180deg, #0B121C 0%, #0A0F17 100%);
 }
+@media (max-width: 540px) {
+  body {
+    background:
+      radial-gradient(900px 520px at 50% 5%, #131c2c 0%, rgba(19,28,44,0) 60%),
+      linear-gradient(180deg, #0c1422 0%, #0a0f17 100%);
+    background-attachment: fixed;
+  }
+  .app { padding: 22px 16px 56px; }
+}
 
 /* ====== Design Tokens ====== */
 :root{
@@ -174,17 +183,28 @@ body {
 /* Right column: remaining */
 .due { text-align: right; min-width: 92px; }
 .due .label {
-  color: var(--muted);
+  color: var(--orange);
   font-size: 11px; letter-spacing: .9px; font-weight: 800;
 }
 .due .value {
   margin-top: 2px;
-  color: var(--orange);
+  color: var(--text-1);
   font-weight: 900; letter-spacing: .5px;
   font-size: 18px;
 }
-.card.light .due .label { color: #77839B; }
-.card.light .due .value { color: #FF7A26; }
+.due.overdue .value { color: #ff6b6b; }
+.due.unknown .value { color: #7fb3ff; }
+.card.light .due .label { color: #D35400; }
+.card.light .due .value { color: #1D2430; }
+
+.status-note {
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.status-note.soon { color: #ffc857; }
+.status-note.overdue { color: #ff6b6b; }
+.status-note.unknown { color: #7fb3ff; }
 
 /* Empty state */
 .empty {
