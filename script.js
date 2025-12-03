@@ -220,10 +220,11 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Google auth URL:", url);
 
       if (tg) {
-        tg.openLink(url);
-      } else {
-        window.open(url, "_blank");
-      }
+  tg.openLink(url, { try_instant_view: true });
+} else {
+  window.open(url, "_blank");
+}
+
     } catch (err) {
       console.error("importFromGoogle error:", err);
     }
