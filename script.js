@@ -9,15 +9,14 @@ if (tg) {
 }
 
 // =======================
-//  Базовий URL бекенду
+//  БАЗОВІ НАЛАШТУВАННЯ
 // =======================
+
+// 🔴 якщо тестуєш локально з Flask: "http://127.0.0.1:8000/api"
+// 🔴 якщо вже на Render: "https://nahadayka-backend.onrender.com/api"
 const API_BASE = "https://nahadayka-backend.onrender.com/api";
 
-// =======================
-//  USER ID
-// =======================
-// Якщо запущено в Telegram WebApp → беремо tg.initDataUnsafe.user.id
-// Якщо відкрито напряму в браузері → fallback "debug_user"
+// USER_ID: з Telegram або debug_user
 function getUserId() {
   const id = tg?.initDataUnsafe?.user?.id;
   const uid = id ? String(id) : "debug_user";
@@ -31,306 +30,338 @@ const USER_ID = getUserId();
 //  СТАН
 // =======================
 let deadlines = [];
-let sortAsc = true;
+let sortAsc = true; // true = найраніші вгорі
 
 // =======================
-//  DOM-елементи
+//  DOM елементи
 // =======================
-const list = document.getElementById("list");
+const viewList = document.getElementById("view-list");
+const viewAdd = document.getElementById("view-add");
+
+const listEl = document.getElementById("list");
+const removeModal = document.getElementById("removeModal");
+const removeListEl = document.getElementById("removeList");
+
 const addBtn = document.getElementById("addBtn");
 const removeBtn = document.getElementById("removeBtn");
 const sortBtn = document.getElementById("sortBtn");
 const importBtn = document.getElementById("importBtn");
 
-const viewList = document.getElementById("view-list");
-const viewAdd = document.getElementById("view-add");
 const addForm = document.getElementById("addForm");
-const cancelAdd = document.getElementById("cancelAdd");
-
-const removeModal = document.getElementById("removeModal");
-const removeList = document.getElementById("removeList");
-const closeRemove = document.getElementById("closeRemove");
+const cancelAddBtn = document.getElementById("cancelAdd");
+const closeRemoveBtn = document.getElementById("closeRemove");
 
 // =======================
-//  ХЕЛПЕРИ
+//  Допоміжні функції
 // =======================
-const showView = (name) => {
-  if (name === "add") {
-    viewList.classList.remove("active");
-    viewAdd.classList.add("active");
-  } else {
-    viewAdd.classList.remove("active");
+
+function showView(name) {
+  if (name === "list") {
     viewList.classList.add("active");
+    viewAdd.classList.remove("active");
+  } else if (name === "add") {
+    viewAdd.classList.add("active");
+    viewList.classList.remove("active");
   }
-};
-
-const calcDaysLeft = (dateStr) => {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-};
-
-const sortItems = (items) => {
-  const sorted = [...items].sort(
-    (a, b) => calcDaysLeft(a.date) - calcDaysLeft(b.date)
-  );
-  return sortAsc ? sorted : sorted.reverse();
-};
-
-const updateSortLabel = () => {
-  if (sortBtn) {
-    sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-  }
-};
-
-// =======================
-//  РЕНДЕР СПИСКУ
-// =======================
-const renderDeadlines = (items = deadlines) => {
-  list.innerHTML = "";
-  if (!items.length) {
-    list.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
-    return;
-  }
-
-  const toRender = sortItems(items);
-
-  toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
-
-    const card = document.createElement("article");
-    card.className = `card ${
-      diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
-    }`;
-
-    const left = document.createElement("div");
-
-    const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = item.title;
-
-    const date = document.createElement("div");
-    date.className = "meta";
-    date.textContent = `До: ${item.date}`;
-
-    left.append(title, date);
-
-    const due = document.createElement("div");
-    due.className = "due";
-
-    const label = document.createElement("div");
-    label.className = "label";
-
-    const value = document.createElement("div");
-    value.className = "value";
-
-    if (diffDays >= 0) {
-      label.textContent = "Залишилось";
-      value.textContent = `${diffDays} дн.`;
-    } else {
-      label.textContent = "Прострочено";
-      value.textContent = "Спробуй не забути наступного разу";
-    }
-
-    due.append(label, value);
-    card.append(left, due);
-    list.appendChild(card);
-  });
-};
-
-// =======================
-//  РОБОТА З БЕКЕНДОМ
-// =======================
-const loadFromBackend = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
-    if (!res.ok) throw new Error("Bad response");
-
-    deadlines = await res.json();
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
-    renderDeadlines();
-  } catch (err) {
-    console.error("Не вдалось отримати дедлайни:", err);
-    deadlines = JSON.parse(localStorage.getItem("deadlines")) || [];
-    renderDeadlines();
-  }
-};
-
-const addDeadlineToBackend = async (newDeadline) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newDeadline),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Add failed");
-  }
-  return res.json();
-};
-
-const deleteDeadlineFromBackend = async (title) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "Delete failed");
-  }
-  return res.json();
-};
-
-// =======================
-//  ОБРОБНИКИ КНОПОК
-// =======================
-
-// Імпорт з Google — надсилаємо сигнал боту і потім оновлюємо список
-if (importBtn) {
-  importBtn.onclick = () => {
-    tg?.sendData?.(JSON.stringify({ action: "sync" }));
-
-    // Через кілька секунд після імпорту — підтягнути свіже з бекенду
-    setTimeout(() => {
-      loadFromBackend();
-    }, 5000);
-  };
 }
 
-addBtn.onclick = () => showView("add");
-
-sortBtn.onclick = () => {
-  sortAsc = !sortAsc;
-  updateSortLabel();
-  renderDeadlines();
-};
-
-if (cancelAdd) {
-  cancelAdd.onclick = () => {
-    addForm.reset();
-    showView("list");
-  };
-}
-
-removeBtn.onclick = () => openRemoveModal();
-
-// =======================
-//  Додавання дедлайну
-// =======================
-addForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const title = addForm.title.value.trim();
-  const date = addForm.date.value;
-  const time = addForm.time.value;
-
-  if (!title || !date) return;
-
-  const dateStr = time ? `${date} ${time}` : date;
-  const newDeadline = { title, date: dateStr };
-
-  try {
-    const saved = await addDeadlineToBackend(newDeadline);
-    deadlines.push(saved);
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
-
-    addForm.reset();
-    showView("list");
-    renderDeadlines();
-
-    // Надсилаємо боту, щоб він теж знав
-    tg?.sendData?.(JSON.stringify(saved));
-  } catch (err) {
-    console.error("Не вдалось додати дедлайн:", err);
-    alert("Не вдалось додати дедлайн: " + err.message);
-  }
-});
-
-// =======================
-//  ВИДАЛЕННЯ ДЕДЛАЙНІВ
-// =======================
 function openRemoveModal() {
-  renderRemoveList();
   removeModal.classList.add("show");
-  removeModal.setAttribute("aria-hidden", "false");
 }
 
 function closeRemoveModal() {
   removeModal.classList.remove("show");
-  removeModal.setAttribute("aria-hidden", "true");
 }
 
-function renderRemoveList() {
-  removeList.innerHTML = "";
+// Формуємо красивий текст дати/часу та "залишилось"
+function formatDue(dueStr) {
+  if (!dueStr) return { dateText: "", timeText: "", remaining: "" };
 
-  if (!deadlines.length) {
-    removeList.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
+  // очікуємо формат "YYYY-MM-DD HH:MM" або ISO
+  let d = new Date(dueStr.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) {
+    // fallback
+    return { dateText: dueStr, timeText: "", remaining: "" };
+  }
+
+  const pad = (n) => String(n).padStart(2, "0");
+
+  const dateText = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+  const timeText = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  const now = new Date();
+  const diffMs = d.getTime() - now.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  let remaining = "";
+  if (diffMs < 0) {
+    remaining = "Протерміновано";
+  } else if (diffDays === 0) {
+    remaining = "Сьогодні";
+  } else if (diffDays === 1) {
+    remaining = "Завтра";
+  } else {
+    remaining = `Через ${diffDays} дн.`;
+  }
+
+  return { dateText, timeText, remaining };
+}
+
+// Створюємо карточку дедлайну для списку
+function createDeadlineCard(item) {
+  const { dateText, timeText, remaining } = formatDue(item.due);
+
+  const card = document.createElement("article");
+  card.className = "card dark";
+
+  card.innerHTML = `
+    <div>
+      <div class="card-top">
+        <span class="tag">${item.source === "manual" ? "РУЧНИЙ" : item.source}</span>
+      </div>
+      <h3 class="card-title">${item.title || "Без назви"}</h3>
+      <div class="meta">
+        <span>${dateText} ${timeText ? "• " + timeText : ""}</span>
+        ${remaining ? `<span>• ${remaining}</span>` : ""}
+      </div>
+    </div>
+    <div class="due">
+      <div class="label">ДЕДЛАЙН</div>
+      <div class="value">${timeText || "--:--"}</div>
+    </div>
+  `;
+
+  return card;
+}
+
+// =======================
+//  API виклики
+// =======================
+
+async function loadDeadlines() {
+  try {
+    const res = await fetch(`${API_BASE}/deadlines?user_id=${USER_ID}`);
+    deadlines = await res.json();
+    console.log("Deadlines:", deadlines);
+    renderList();
+  } catch (err) {
+    console.error("Помилка завантаження дедлайнів:", err);
+    listEl.innerHTML = `<div class="empty">Не вдалося завантажити дедлайни 🥲</div>`;
+  }
+}
+
+async function addDeadline(title, due, description = "") {
+  const body = {
+    user_id: USER_ID,
+    title,
+    due,
+    description,
+    source: "manual",
+  };
+
+  const res = await fetch(`${API_BASE}/deadlines`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Помилка додавання дедлайну");
+  }
+
+  return await res.json();
+}
+
+async function deleteDeadline(id) {
+  const res = await fetch(
+    `${API_BASE}/deadlines/${id}?user_id=${USER_ID}`,
+    { method: "DELETE" }
+  );
+  return await res.json();
+}
+
+async function importFromGoogleCalendar() {
+  const res = await fetch(`${API_BASE}/import/google-calendar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: USER_ID }),
+  });
+  return await res.json();
+}
+
+// =======================
+//  РЕНДЕРИНГ
+// =======================
+
+function renderList() {
+  listEl.innerHTML = "";
+
+  if (!deadlines || deadlines.length === 0) {
+    listEl.innerHTML = `<div class="empty">Поки що немає жодного дедлайну. Натисни «Додати дедлайн» ⏱️</div>`;
     return;
   }
 
-  const toRender = sortItems(deadlines);
-  toRender.forEach((item) => {
-    const diffDays = calcDaysLeft(item.date);
+  const sorted = [...deadlines].sort((a, b) => {
+    const aDue = a.due || "";
+    const bDue = b.due || "";
+    if (aDue < bDue) return sortAsc ? -1 : 1;
+    if (aDue > bDue) return sortAsc ? 1 : -1;
+    return 0;
+  });
 
-    const card = document.createElement("article");
-    card.className = `card ${
-      diffDays <= 7 && diffDays >= 0 ? "light" : "dark"
-    }`;
-
-    const left = document.createElement("div");
-    const titleEl = document.createElement("h3");
-    titleEl.className = "card-title";
-    titleEl.textContent = item.title;
-
-    const date = document.createElement("div");
-    date.className = "meta";
-    date.textContent = `До: ${item.date}`;
-    left.append(titleEl, date);
-
-    const actions = document.createElement("div");
-    actions.className = "due";
-    const btn = document.createElement("button");
-    btn.className = "btn danger small";
-    btn.textContent = "Видалити";
-    btn.onclick = () => handleDeleteDeadline(item.title);
-    actions.appendChild(btn);
-
-    card.append(left, actions);
-    removeList.appendChild(card);
+  sorted.forEach((item) => {
+    const card = createDeadlineCard(item);
+    listEl.appendChild(card);
   });
 }
 
-async function handleDeleteDeadline(title) {
-  try {
-    await deleteDeadlineFromBackend(title);
-    deadlines = deadlines.filter((d) => d.title !== title);
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
+function renderRemoveList() {
+  removeListEl.innerHTML = "";
 
-    renderDeadlines();
-    renderRemoveList();
-
-    tg?.sendData?.(JSON.stringify({ action: "delete", title }));
-    alert(`Дедлайн "${title}" видалено.`);
-  } catch (err) {
-    console.error("Не вдалось видалити дедлайн:", err);
-    alert("Не вдалось видалити дедлайн: " + err.message);
+  if (!deadlines || deadlines.length === 0) {
+    removeListEl.innerHTML = `<div class="empty">Немає що видаляти.</div>`;
+    return;
   }
+
+  const sorted = [...deadlines].sort((a, b) => {
+    const aDue = a.due || "";
+    const bDue = b.due || "";
+    if (aDue < bDue) return -1;
+    if (aDue > bDue) return 1;
+    return 0;
+  });
+
+  sorted.forEach((item) => {
+    const { dateText, timeText } = formatDue(item.due);
+
+    const row = document.createElement("article");
+    row.className = "card dark";
+
+    row.innerHTML = `
+      <div>
+        <h3 class="card-title">${item.title || "Без назви"}</h3>
+        <div class="meta">
+          <span>${dateText} ${timeText ? "• " + timeText : ""}</span>
+        </div>
+      </div>
+      <div class="due">
+        <button class="btn small danger">Видалити</button>
+      </div>
+    `;
+
+    const btn = row.querySelector("button");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "…";
+      try {
+        await deleteDeadline(item.id);
+        // оновити локальний список
+        deadlines = deadlines.filter((d) => d.id !== item.id);
+        renderList();
+        renderRemoveList();
+      } catch (err) {
+        console.error("Помилка видалення:", err);
+        btn.disabled = false;
+        btn.textContent = "Видалити";
+      }
+    });
+
+    removeListEl.appendChild(row);
+  });
 }
 
-// Закриття модалки
-closeRemove.addEventListener("click", closeRemoveModal);
-removeModal.addEventListener("click", (e) => {
-  if (e.target === removeModal) closeRemoveModal();
+// =======================
+//  ОБРОБНИКИ ПОДІЙ
+// =======================
+
+addBtn.addEventListener("click", () => {
+  showView("add");
 });
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeRemoveModal();
+
+cancelAddBtn.addEventListener("click", () => {
+  showView("list");
+});
+
+sortBtn.addEventListener("click", () => {
+  sortAsc = !sortAsc;
+  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+  renderList();
+});
+
+removeBtn.addEventListener("click", () => {
+  renderRemoveList();
+  openRemoveModal();
+});
+
+closeRemoveBtn.addEventListener("click", () => {
+  closeRemoveModal();
+});
+
+// Закриття модалки по кліку на фон
+removeModal.addEventListener("click", (e) => {
+  if (e.target === removeModal) {
+    closeRemoveModal();
+  }
+});
+
+// Форма додавання
+addForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const titleInput = document.getElementById("title");
+  const dateInput = document.getElementById("date");
+  const timeInput = document.getElementById("time");
+
+  const title = titleInput.value.trim();
+  const date = dateInput.value; // YYYY-MM-DD
+  const time = timeInput.value || "18:00"; // HH:MM
+
+  if (!title || !date) return;
+
+  // формат, який сортується нормально як строка
+  const due = `${date} ${time}`;
+
+  try {
+    const created = await addDeadline(title, due);
+    console.log("Створено дедлайн:", created);
+
+    // оновлюємо локальний список
+    deadlines.push(created);
+    renderList();
+
+    // очистити форму
+    titleInput.value = "";
+    // dateInput.value = ""; // можна залишити обране
+    // timeInput.value = "18:00";
+
+    showView("list");
+  } catch (err) {
+    console.error(err);
+    alert("Не вдалося додати дедлайн 😢");
+  }
+});
+
+// Імпорт (поки що → заглушка з бекенду)
+importBtn.addEventListener("click", async () => {
+  importBtn.disabled = true;
+  importBtn.textContent = "Імпортую…";
+
+  try {
+    const imported = await importFromGoogleCalendar();
+    console.log("Імпортовано:", imported);
+    deadlines = deadlines.concat(imported);
+    renderList();
+  } catch (err) {
+    console.error("Помилка імпорту:", err);
+    alert("Не вдалося імпортувати з Google Calendar");
+  } finally {
+    importBtn.disabled = false;
+    importBtn.textContent = "Імпортувати";
+  }
 });
 
 // =======================
-//  Старт
+//  СТАРТ
 // =======================
-updateSortLabel();
-loadFromBackend();
+loadDeadlines();
