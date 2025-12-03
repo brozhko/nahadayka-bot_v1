@@ -93,23 +93,30 @@ document.addEventListener("DOMContentLoaded", () => {
     list.innerHTML = "";
 
     if (!deadlines.length) {
-      list.innerHTML = `<div class="empty">Поки що немає дедлайнів 🥲</div>`;
+      list.innerHTML = `<div class="empty">Тут поки порожньо. Додайте дедлайн.</div>`;
       return;
     }
 
     deadlines.forEach((d) => {
-      const card = document.createElement("div");
-      card.className = "card dark"; // під твої стилі
+      const status = buildDeadlineStatus(d.date);
+      const displayDate = formatForDisplay(d.date);
+
+      const card = document.createElement('div');
+      card.className = 'card dark';
 
       card.innerHTML = `
         <div>
           <div class="card-top">
-            <span class="tag">ДЕДЛАЙН</span>
+            <span class="tag">Дедлайн</span>
           </div>
           <h3 class="card-title">${d.title}</h3>
           <div class="meta">
-            <span>${d.date}</span>
+            <span>${displayDate}</span>
           </div>
+        </div>
+        <div class="due ${status.variant}">
+          <div class="label">${status.label}</div>
+          <div class="value">${status.value}</div>
         </div>
       `;
 
@@ -117,14 +124,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // список у модалці видалення — теж у вигляді карт
   function fillRemoveList() {
     if (!removeList) return;
 
     removeList.innerHTML = "";
 
     if (!deadlines.length) {
-      removeList.innerHTML = `<div class="empty">Немає що видаляти 🥲</div>`;
+      removeList.innerHTML = `<div class="empty">Немає що видаляти </div>`;
       return;
     }
 
@@ -232,6 +238,105 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${dateStr} ${timeStr}`;
   }
 
+  function normalizeDateString(dateStr) {
+    if (!dateStr) return "";
+    return dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T");
+  }
+
+  function toDateObj(dateStr) {
+    const normalized = normalizeDateString(dateStr);
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function formatForDisplay(dateStr) {
+    const d = toDateObj(dateStr);
+    if (!d) return dateStr || "без дати";
+    try {
+      return d.toLocaleString("uk-UA", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (err) {
+      console.warn("formatForDisplay error:", err);
+      return dateStr;
+    }
+  }
+
+  function pluralDays(n) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return "день";
+    if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "дні";
+    return "днів";
+  }
+
+  function buildDeadlineStatus(dateStr) {
+    const DAY = 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+
+    const dateObj = toDateObj(dateStr);
+    if (!dateObj) {
+      return {
+        label: "СТАТУС",
+        value: "Невідомо",
+        note: "",
+        variant: "unknown",
+      };
+    }
+
+    const diff = dateObj.getTime() - Date.now();
+
+    if (diff < 0) {
+      return {
+        label: "СТАТУС",
+        value: "Протерміновано",
+        note: "",
+        variant: "overdue",
+      };
+    }
+
+    const days = Math.floor(diff / DAY);
+    const hours = Math.floor((diff % DAY) / HOUR);
+
+    if (diff < HOUR) {
+      return {
+        label: "ЗАЛИШИЛОСЬ",
+        value: "сьогодні",
+        note: "",
+        variant: "soon",
+      };
+    }
+
+    if (days === 0) {
+      return {
+        label: "ЗАЛИШИЛОСЬ",
+        value: `сьогодні (${hours || 1} год)`,
+        note: "",
+        variant: "soon",
+      };
+    }
+
+    if (days === 1) {
+      return {
+        label: "ЗАЛИШИЛОСЬ",
+        value: "1 день",
+        note: "",
+        variant: "soon",
+      };
+    }
+
+    return {
+      label: "ЗАЛИШИЛОСЬ",
+      value: ` ${days} ${pluralDays(days)}`,
+      note: "",
+      variant: "ok",
+    };
+  }
+
   function resetAddForm() {
     if (!addForm) return;
     addForm.reset();
@@ -301,18 +406,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // "Сортувати"
+  // Сортування
   sortBtn?.addEventListener("click", () => {
     console.log("sortBtn clicked");
 
     if (!deadlines.length) return;
 
     deadlines.sort((a, b) => {
-      const da = a.date || "";
-      const db = b.date || "";
-      if (da < db) return sortAsc ? -1 : 1;
-      if (da > db) return sortAsc ? 1 : -1;
-      return 0;
+      const ta = toDateObj(a.date)?.getTime() ?? Number.POSITIVE_INFINITY;
+      const tb = toDateObj(b.date)?.getTime() ?? Number.POSITIVE_INFINITY;
+      return sortAsc ? ta - tb : tb - ta;
     });
 
     sortAsc = !sortAsc;
@@ -323,7 +426,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDeadlines();
   });
 
-  // "Імпортувати"
   importBtn?.addEventListener("click", () => {
     console.log("importBtn clicked");
     importFromGoogle();
