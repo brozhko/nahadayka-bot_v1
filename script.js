@@ -74,18 +74,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   function openRemoveModal() {
     if (!removeModal) return;
-    removeModal.classList.add("open");
+    removeModal.classList.add("show");          // 🔴 важливо: .show, як у CSS
     removeModal.setAttribute("aria-hidden", "false");
   }
 
   function closeRemoveModal() {
     if (!removeModal) return;
-    removeModal.classList.remove("open");
+    removeModal.classList.remove("show");       // 🔴 теж .show
     removeModal.setAttribute("aria-hidden", "true");
   }
 
   // =======================
-  //  Рендер списку
+  //  Рендер списку (картки .card.dark)
   // =======================
   function renderDeadlines() {
     if (!list) return;
@@ -93,46 +93,52 @@ document.addEventListener("DOMContentLoaded", () => {
     list.innerHTML = "";
 
     if (!deadlines.length) {
-      list.innerHTML = "<p>Поки що немає дедлайнів 🥲</p>";
+      list.innerHTML = `<div class="empty">Поки що немає дедлайнів 🥲</div>`;
       return;
     }
 
     deadlines.forEach((d) => {
-      const item = document.createElement("div");
-      item.className = "list-item";
+      const card = document.createElement("div");
+      card.className = "card dark"; // під твої стилі
 
-      item.innerHTML = `
-        <div class="item-main">
-          <div class="deadline-title">${d.title}</div>
-          <div class="deadline-date">${d.date}</div>
+      card.innerHTML = `
+        <div>
+          <div class="card-top">
+            <span class="tag">ДЕДЛАЙН</span>
+          </div>
+          <h3 class="card-title">${d.title}</h3>
+          <div class="meta">
+            <span>${d.date}</span>
+          </div>
         </div>
       `;
 
-      list.appendChild(item);
+      list.appendChild(card);
     });
   }
 
+  // список у модалці видалення — теж у вигляді карт
   function fillRemoveList() {
     if (!removeList) return;
 
     removeList.innerHTML = "";
 
     if (!deadlines.length) {
-      removeList.innerHTML = "<p>Немає що видаляти 🥲</p>";
+      removeList.innerHTML = `<div class="empty">Немає що видаляти 🥲</div>`;
       return;
     }
 
     deadlines.forEach((d) => {
       const row = document.createElement("div");
-      row.className = "list-item";
+      row.className = "card dark";
 
       const titleDiv = document.createElement("div");
-      titleDiv.className = "deadline-title";
+      titleDiv.className = "card-title";
       titleDiv.textContent = d.title;
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "btn danger";
+      btn.className = "btn danger small";  // danger + small є в CSS
       btn.textContent = "Видалити";
 
       btn.addEventListener("click", async () => {
@@ -236,20 +242,20 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Обробники подій
   // =======================
 
-  // Кнопка "Додати дедлайн"
+  // "Додати дедлайн"
   addBtn?.addEventListener("click", () => {
     console.log("addBtn clicked");
     showView("add");
   });
 
-  // Кнопка "Скасувати" в формі
+  // "Скасувати" у формі
   cancelAddBtn?.addEventListener("click", () => {
     console.log("cancelAdd clicked");
     showView("list");
     resetAddForm();
   });
 
-  // Сабміт форми додавання
+  // Сабміт форми
   addForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     console.log("addForm submit");
@@ -275,27 +281,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Кнопка "Видалити"
+  // "Видалити"
   removeBtn?.addEventListener("click", () => {
     console.log("removeBtn clicked");
     fillRemoveList();
     openRemoveModal();
   });
 
-  // Закрити модалку видалення
+  // Закрити модалку
   closeRemoveBtn?.addEventListener("click", () => {
     console.log("closeRemove clicked");
     closeRemoveModal();
   });
 
-  // Клік по фону модалки, щоб закрити
+  // Клік по фону модалки → закрити
   removeModal?.addEventListener("click", (e) => {
     if (e.target === removeModal) {
       closeRemoveModal();
     }
   });
 
-  // Кнопка "Сортувати"
+  // "Сортувати"
   sortBtn?.addEventListener("click", () => {
     console.log("sortBtn clicked");
 
@@ -317,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDeadlines();
   });
 
-  // Кнопка "Імпортувати"
+  // "Імпортувати"
   importBtn?.addEventListener("click", () => {
     console.log("importBtn clicked");
     importFromGoogle();
