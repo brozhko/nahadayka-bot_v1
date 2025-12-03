@@ -1,269 +1,331 @@
-// =======================
-//  Telegram WebApp
-// =======================
-const tg = window.Telegram?.WebApp || null;
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM loaded");
 
-if (tg) {
-  tg.expand();
-  tg.ready?.();
-}
+  // =======================
+  //  Telegram WebApp
+  // =======================
+  const tg = window.Telegram?.WebApp || null;
 
-// =======================
-//  USER ID (ГАРАНТОВАНИЙ)
-// =======================
-function getUserId() {
-  return String(tg?.initDataUnsafe?.user?.id || "debug_user");
-}
-const USER_ID = getUserId();
-
-console.log("USER_ID =", USER_ID);
-
-// =======================
-//  API URL
-// =======================
-const API_BASE = "https://nahadayka-backend.onrender.com/api";
-
-// =======================
-//  СТАН
-// =======================
-let deadlines = [];
-let sortAsc = true;
-
-// =======================
-//  DOM
-// =======================
-const list = document.getElementById("list");
-const addBtn = document.getElementById("addBtn");
-const removeBtn = document.getElementById("removeBtn");
-const sortBtn = document.getElementById("sortBtn");
-const importBtn = document.getElementById("importBtn");
-
-const viewList = document.getElementById("view-list");
-const viewAdd = document.getElementById("view-add");
-const addForm = document.getElementById("addForm");
-const cancelAdd = document.getElementById("cancelAdd");
-
-const removeModal = document.getElementById("removeModal");
-const removeList = document.getElementById("removeList");
-const closeRemove = document.getElementById("closeRemove");
-
-// =======================
-//  ВІДОБРАЖЕННЯ
-// =======================
-const showView = (name) => {
-  if (name === "add") {
-    viewList.classList.remove("active");
-    viewAdd.classList.add("active");
-  } else {
-    viewAdd.classList.remove("active");
-    viewList.classList.add("active");
-  }
-};
-
-const calcDaysLeft = (dateStr) => {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-};
-
-const sortItems = (items) => {
-  const sorted = [...items].sort(
-    (a, b) => calcDaysLeft(a.date) - calcDaysLeft(b.date)
-  );
-  return sortAsc ? sorted : sorted.reverse();
-};
-
-const updateSortLabel = () => {
-  sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-};
-
-const renderDeadlines = (items = deadlines) => {
-  list.innerHTML = "";
-  if (!items.length) {
-    list.innerHTML = '<div class="empty">Дедлайнів не знайдено</div>';
-    return;
+  if (tg) {
+    tg.expand();
+    tg.ready?.();
   }
 
-  const sorted = sortItems(items);
+  // =======================
+  //  API
+  // =======================
+  const API_BASE = "https://nahadayka-backend.onrender.com/api";
 
-  sorted.forEach((item) => {
-    const diff = calcDaysLeft(item.date);
+  function getUserId() {
+    const id = tg?.initDataUnsafe?.user?.id;
+    const uid = id ? String(id) : "debug_user";
+    console.log("USER_ID =", uid);
+    return uid;
+  }
 
-    const card = document.createElement("article");
-    card.className = `card ${diff <= 7 && diff >= 0 ? "light" : "dark"}`;
+  const USER_ID = getUserId();
 
-    const left = document.createElement("div");
-    const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = item.title;
+  // =======================
+  //  СТАН
+  // =======================
+  let deadlines = [];
+  let sortAsc = true;
 
-    const date = document.createElement("div");
-    date.className = "meta";
-    date.textContent = `До: ${item.date}`;
+  // =======================
+  //  DOM-елементи
+  // =======================
+  const viewList = document.getElementById("view-list");
+  const viewAdd = document.getElementById("view-add");
 
-    left.append(title, date);
+  const list = document.getElementById("list");
 
-    const due = document.createElement("div");
-    due.className = "due";
-    const label = document.createElement("div");
-    label.textContent = diff >= 0 ? "Залишилось" : "Прострочено";
+  const addBtn = document.getElementById("addBtn");
+  const removeBtn = document.getElementById("removeBtn");
+  const sortBtn = document.getElementById("sortBtn");
+  const importBtn = document.getElementById("importBtn");
 
-    const value = document.createElement("div");
-    value.className = "value";
-    value.textContent = diff >= 0 ? `${diff} дн.` : "🤡";
-    due.append(label, value);
+  const addForm = document.getElementById("addForm");
+  const titleInput = document.getElementById("title");
+  const dateInput = document.getElementById("date");
+  const timeInput = document.getElementById("time");
+  const cancelAddBtn = document.getElementById("cancelAdd");
 
-    card.append(left, due);
-    list.appendChild(card);
-  });
-};
+  const removeModal = document.getElementById("removeModal");
+  const removeList = document.getElementById("removeList");
+  const closeRemoveBtn = document.getElementById("closeRemove");
 
-// =======================
-//  API
-// =======================
-const loadFromBackend = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
-    if (!res.ok) throw new Error("bad");
+  // =======================
+  //  В'юхи
+  // =======================
+  function showView(name) {
+    if (!viewList || !viewAdd) return;
 
-    deadlines = await res.json();
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
+    if (name === "add") {
+      viewAdd.classList.add("active");
+      viewList.classList.remove("active");
+    } else {
+      viewList.classList.add("active");
+      viewAdd.classList.remove("active");
+    }
+  }
+
+  // =======================
+  //  Модалка видалення
+  // =======================
+  function openRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.add("open");
+    removeModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.remove("open");
+    removeModal.setAttribute("aria-hidden", "true");
+  }
+
+  // =======================
+  //  Рендер списку
+  // =======================
+  function renderDeadlines() {
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    if (!deadlines.length) {
+      list.innerHTML = "<p>Поки що немає дедлайнів 🥲</p>";
+      return;
+    }
+
+    deadlines.forEach((d) => {
+      const item = document.createElement("div");
+      item.className = "list-item";
+
+      item.innerHTML = `
+        <div class="item-main">
+          <div class="deadline-title">${d.title}</div>
+          <div class="deadline-date">${d.date}</div>
+        </div>
+      `;
+
+      list.appendChild(item);
+    });
+  }
+
+  function fillRemoveList() {
+    if (!removeList) return;
+
+    removeList.innerHTML = "";
+
+    if (!deadlines.length) {
+      removeList.innerHTML = "<p>Немає що видаляти 🥲</p>";
+      return;
+    }
+
+    deadlines.forEach((d) => {
+      const row = document.createElement("div");
+      row.className = "list-item";
+
+      const titleDiv = document.createElement("div");
+      titleDiv.className = "deadline-title";
+      titleDiv.textContent = d.title;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn danger";
+      btn.textContent = "Видалити";
+
+      btn.addEventListener("click", async () => {
+        console.log("Delete clicked for:", d.title);
+        try {
+          await deleteDeadlineApi(d.title);
+        } catch (err) {
+          console.error(err);
+          alert("Не вдалося видалити дедлайн");
+        }
+      });
+
+      row.appendChild(titleDiv);
+      row.appendChild(btn);
+      removeList.appendChild(row);
+    });
+  }
+
+  // =======================
+  //  API-запити
+  // =======================
+  async function loadDeadlines() {
+    try {
+      const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
+      if (!res.ok) throw new Error("Failed to load deadlines");
+      deadlines = await res.json();
+      console.log("Loaded deadlines:", deadlines);
+      renderDeadlines();
+      fillRemoveList();
+    } catch (err) {
+      console.error("loadDeadlines error:", err);
+    }
+  }
+
+  async function addDeadlineApi(title, date) {
+    const body = { title, date };
+
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error("Failed to add deadline");
+
+    const item = await res.json();
+    deadlines.push(item);
     renderDeadlines();
-  } catch (e) {
-    deadlines = JSON.parse(localStorage.getItem("deadlines")) || [];
-    renderDeadlines();
+    fillRemoveList();
   }
-};
 
-const addDeadlineToBackend = async (dl) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dl),
-  });
-  if (!res.ok) throw new Error("Add failed");
-  return res.json();
-};
+  async function deleteDeadlineApi(title) {
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
 
-const deleteDeadlineFromBackend = async (title) => {
-  const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
-  });
-  if (!res.ok) throw new Error("Delete failed");
-  return res.json();
-};
+    if (!res.ok) throw new Error("Failed to delete deadline");
 
-// =======================
-//  📥 ІМПОРТ GOOGLE
-// =======================
-if (importBtn) {
-  importBtn.onclick = () => {
-    tg.sendData(
-      JSON.stringify({
-        action: "sync",
-        user_id: USER_ID,
-      })
-    );
+    deadlines = deadlines.filter((d) => d.title !== title);
+    renderDeadlines();
+    fillRemoveList();
+  }
 
-    alert("Імпорт розпочато! Якщо зʼявиться Google — авторизуйся.");
+  async function importFromGoogle() {
+    try {
+      const res = await fetch(`${API_BASE}/google_login/${USER_ID}`);
+      if (!res.ok) throw new Error("Failed to get Google auth URL");
+      const data = await res.json();
 
-    let attempts = 0;
-    const oldCount = deadlines.length;
+      const url = data.auth_url;
+      console.log("Google auth URL:", url);
 
-    const timer = setInterval(async () => {
-      attempts++;
-
-      try {
-        await loadFromBackend();
-      } catch {}
-
-      if (deadlines.length !== oldCount || attempts >= 6) {
-        clearInterval(timer);
+      if (tg) {
+        tg.openLink(url);
+      } else {
+        window.open(url, "_blank");
       }
-    }, 5000);
-  };
-}
-
-// =======================
-//  Додавання дедлайну
-// =======================
-addForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const title = addForm.title.value.trim();
-  const date = addForm.date.value;
-  const time = addForm.time.value;
-
-  if (!title || !date) return;
-
-  const dateStr = time ? `${date} ${time}` : date;
-  const newDl = { title, date: dateStr };
-
-  try {
-    const saved = await addDeadlineToBackend(newDl);
-    deadlines.push(saved);
-    localStorage.setItem("deadlines", JSON.stringify(deadlines));
-
-    showView("list");
-    renderDeadlines();
-
-    tg.sendData(JSON.stringify({ action: "add", user_id: USER_ID, ...saved }));
-  } catch (e) {
-    alert("Помилка додавання дедлайну.");
-  }
-});
-
-// =======================
-//  Видалення
-// =======================
-removeBtn.onclick = () => {
-  renderRemoveList();
-  removeModal.classList.add("show");
-};
-
-function renderRemoveList() {
-  removeList.innerHTML = "";
-
-  if (!deadlines.length) {
-    removeList.innerHTML = "<div>Немає</div>";
-    return;
+    } catch (err) {
+      console.error("importFromGoogle error:", err);
+    }
   }
 
-  const sorted = sortItems(deadlines);
-  sorted.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "remove-item";
+  // =======================
+  //  Хелпери
+  // =======================
+  function formatDateTime(dateStr, timeStr) {
+    if (!dateStr) return "";
+    if (!timeStr) return dateStr;
+    return `${dateStr} ${timeStr}`;
+  }
 
-    const title = document.createElement("span");
-    title.textContent = item.title;
+  function resetAddForm() {
+    if (!addForm) return;
+    addForm.reset();
+    if (timeInput) timeInput.value = "18:00";
+  }
 
-    const btn = document.createElement("button");
-    btn.textContent = "Видалити";
-    btn.onclick = () => handleDelete(item.title);
+  // =======================
+  //  Обробники подій
+  // =======================
 
-    row.append(title, btn);
-    removeList.append(row);
+  // Кнопка "Додати дедлайн"
+  addBtn?.addEventListener("click", () => {
+    console.log("addBtn clicked");
+    showView("add");
   });
-}
 
-async function handleDelete(title) {
-  await deleteDeadlineFromBackend(title);
+  // Кнопка "Скасувати" в формі
+  cancelAddBtn?.addEventListener("click", () => {
+    console.log("cancelAdd clicked");
+    showView("list");
+    resetAddForm();
+  });
 
-  deadlines = deadlines.filter((d) => d.title !== title);
-  localStorage.setItem("deadlines", JSON.stringify(deadlines));
+  // Сабміт форми додавання
+  addForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    console.log("addForm submit");
 
-  renderDeadlines();
-  renderRemoveList();
+    const title = titleInput.value.trim();
+    const date = dateInput.value;
+    const time = timeInput.value;
 
-  tg.sendData(
-    JSON.stringify({ action: "delete", user_id: USER_ID, title })
-  );
-}
+    if (!title || !date) {
+      alert("Введи назву і дату");
+      return;
+    }
 
-// =======================
-// START
-// =======================
-updateSortLabel();
-loadFromBackend();
+    const fullDate = formatDateTime(date, time);
+
+    try {
+      await addDeadlineApi(title, fullDate);
+      resetAddForm();
+      showView("list");
+    } catch (err) {
+      console.error(err);
+      alert("Не вдалося додати дедлайн");
+    }
+  });
+
+  // Кнопка "Видалити"
+  removeBtn?.addEventListener("click", () => {
+    console.log("removeBtn clicked");
+    fillRemoveList();
+    openRemoveModal();
+  });
+
+  // Закрити модалку видалення
+  closeRemoveBtn?.addEventListener("click", () => {
+    console.log("closeRemove clicked");
+    closeRemoveModal();
+  });
+
+  // Клік по фону модалки, щоб закрити
+  removeModal?.addEventListener("click", (e) => {
+    if (e.target === removeModal) {
+      closeRemoveModal();
+    }
+  });
+
+  // Кнопка "Сортувати"
+  sortBtn?.addEventListener("click", () => {
+    console.log("sortBtn clicked");
+
+    if (!deadlines.length) return;
+
+    deadlines.sort((a, b) => {
+      const da = a.date || "";
+      const db = b.date || "";
+      if (da < db) return sortAsc ? -1 : 1;
+      if (da > db) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+    sortAsc = !sortAsc;
+    if (sortBtn) {
+      sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+    }
+
+    renderDeadlines();
+  });
+
+  // Кнопка "Імпортувати"
+  importBtn?.addEventListener("click", () => {
+    console.log("importBtn clicked");
+    importFromGoogle();
+  });
+
+  // =======================
+  //  Старт
+  // =======================
+  showView("list");
+  loadDeadlines();
+});
