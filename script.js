@@ -54,15 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
 
-  // ✅ Нове: модалка вибору
+  // ✅ Модалка вибору (вручну / фото)
   const addChoiceModal = document.getElementById("addChoiceModal");
   const closeAddChoiceBtn = document.getElementById("closeAddChoice");
   const chooseManualBtn = document.getElementById("chooseManualBtn");
-  const chooseCameraBtn = document.getElementById("chooseCameraBtn");
-  const chooseGalleryBtn = document.getElementById("chooseGalleryBtn");
+  const choosePhotoBtn = document.getElementById("choosePhotoBtn");
 
-  const photoCameraInput = document.getElementById("photoCameraInput");
-  const photoGalleryInput = document.getElementById("photoGalleryInput");
+  // ✅ один input (без capture)
+  const photoInput = document.getElementById("photoInput");
 
   // =======================
   // В'юхи
@@ -94,7 +93,6 @@ document.addEventListener("DOMContentLoaded", () => {
     removeModal.setAttribute("aria-hidden", "true");
   }
 
-  // ✅ sheet modal
   function openAddChoice() {
     if (!addChoiceModal) return;
     addChoiceModal.classList.add("show");
@@ -271,11 +269,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       console.log("scan_image:", data);
 
-      // Поки що просто показуємо кількість
       const count = Array.isArray(data.items) ? data.items.length : 0;
       alert(`Знайдено дедлайнів: ${count}`);
-
-      // Далі зробимо: список + чекбокси + додати вибране
     } catch (err) {
       console.error(err);
       alert("Не вдалося відправити фото");
@@ -340,30 +335,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const HOUR = 60 * 60 * 1000;
 
     const dateObj = toDateObj(dateStr);
-    if (!dateObj) {
-      return { label: "СТАТУС", value: "Невідомо", variant: "unknown" };
-    }
+    if (!dateObj) return { label: "СТАТУС", value: "Невідомо", variant: "unknown" };
 
     const diff = dateObj.getTime() - Date.now();
 
-    if (diff < 0) {
-      return { label: "СТАТУС", value: "Протерміновано", variant: "overdue" };
-    }
+    if (diff < 0) return { label: "СТАТУС", value: "Протерміновано", variant: "overdue" };
 
     const days = Math.floor(diff / DAY);
     const hours = Math.floor((diff % DAY) / HOUR);
 
-    if (diff < HOUR) {
-      return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", variant: "soon" };
-    }
-
-    if (days === 0) {
-      return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, variant: "soon" };
-    }
-
-    if (days === 1) {
-      return { label: "ЗАЛИШИЛОСЬ", value: "1 день", variant: "soon" };
-    }
+    if (diff < HOUR) return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", variant: "soon" };
+    if (days === 0) return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, variant: "soon" };
+    if (days === 1) return { label: "ЗАЛИШИЛОСЬ", value: "1 день", variant: "soon" };
 
     return { label: "ЗАЛИШИЛОСЬ", value: `${days} ${pluralDays(days)}`, variant: "ok" };
   }
@@ -378,13 +361,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Events
   // =======================
 
-  // ✅ "Додати дедлайн" -> відкриває вибір
-  addBtn?.addEventListener("click", () => {
-    openAddChoice();
-  });
+  // "Додати дедлайн" -> модалка вибору
+  addBtn?.addEventListener("click", openAddChoice);
 
+  // хрестик / фон
   closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
-
   addChoiceModal?.addEventListener("click", (e) => {
     if (e.target === addChoiceModal) closeAddChoice();
   });
@@ -395,25 +376,17 @@ document.addEventListener("DOMContentLoaded", () => {
     showView("add");
   });
 
-  // Камера
-  chooseCameraBtn?.addEventListener("click", () => {
+  // ✅ Фото (1 кнопка) -> iOS покаже меню
+  choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
-    photoCameraInput.value = "";
-    photoCameraInput.click();
+    if (photoInput) {
+      photoInput.value = "";
+      photoInput.click();
+    }
   });
 
-  // Галерея
-  chooseGalleryBtn?.addEventListener("click", () => {
-    closeAddChoice();
-    photoGalleryInput.value = "";
-    photoGalleryInput.click();
-  });
-
-  photoCameraInput?.addEventListener("change", (e) => {
-    handlePickedPhoto(e.target.files?.[0]);
-  });
-
-  photoGalleryInput?.addEventListener("change", (e) => {
+  // коли вибрав фото/файл
+  photoInput?.addEventListener("change", (e) => {
     handlePickedPhoto(e.target.files?.[0]);
   });
 
