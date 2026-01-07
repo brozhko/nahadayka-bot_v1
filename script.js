@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Telegram WebApp
   // =======================
   const tg = window.Telegram?.WebApp || null;
-
   if (tg) {
     tg.expand();
     tg.ready?.();
@@ -26,13 +25,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const USER_ID = getUserId();
 
   // =======================
-  // СТАН
+  // STATE
   // =======================
   let deadlines = [];
   let sortAsc = true;
 
   // =======================
-  // DOM-елементи
+  // DOM
   // =======================
   const viewList = document.getElementById("view-list");
   const viewAdd = document.getElementById("view-add");
@@ -54,21 +53,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
 
-  // ✅ Модалка вибору (вручну / фото)
+  // ✅ bottom sheet: вибір способу
   const addChoiceModal = document.getElementById("addChoiceModal");
   const closeAddChoiceBtn = document.getElementById("closeAddChoice");
   const chooseManualBtn = document.getElementById("chooseManualBtn");
   const choosePhotoBtn = document.getElementById("choosePhotoBtn");
 
-  // ✅ один input (без capture)
+  // ✅ один input -> iOS меню (Фототека/Камера/Файл)
   const photoInput = document.getElementById("photoInput");
 
   // =======================
-  // В'юхи
+  // Views
   // =======================
   function showView(name) {
     if (!viewList || !viewAdd) return;
-
     if (name === "add") {
       viewAdd.classList.add("active");
       viewList.classList.remove("active");
@@ -79,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // Модалки
+  // Modals
   // =======================
   function openRemoveModal() {
     if (!removeModal) return;
@@ -106,11 +104,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // Рендер списку
+  // Render
   // =======================
   function renderDeadlines() {
     if (!list) return;
-
     list.innerHTML = "";
 
     if (!deadlines.length) {
@@ -147,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function fillRemoveList() {
     if (!removeList) return;
-
     removeList.innerHTML = "";
 
     if (!deadlines.length) {
@@ -184,23 +180,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // API
+  // API calls
   // =======================
   async function loadDeadlines() {
-    try {
-      const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
-      if (!res.ok) throw new Error("Failed to load deadlines");
-      deadlines = await res.json();
-      renderDeadlines();
-      fillRemoveList();
-    } catch (err) {
-      console.error("loadDeadlines error:", err);
-    }
+    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
+    if (!res.ok) throw new Error("Failed to load deadlines");
+    deadlines = await res.json();
+    renderDeadlines();
+    fillRemoveList();
   }
 
   async function addDeadlineApi(title, date) {
     const body = { title, date };
-
     const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -209,10 +200,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!res.ok) throw new Error("Failed to add deadline");
 
-    const item = await res.json();
-    deadlines.push(item);
-    renderDeadlines();
-    fillRemoveList();
+    // твій бек вертає {status:"added"} — тоді просто reload
+    await loadDeadlines();
   }
 
   async function deleteDeadlineApi(title) {
@@ -223,35 +212,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (!res.ok) throw new Error("Failed to delete deadline");
-
-    deadlines = deadlines.filter((d) => d.title !== title);
-    renderDeadlines();
-    fillRemoveList();
+    await loadDeadlines();
   }
 
   async function importFromGoogle() {
-    try {
-      const res = await fetch(`${API_BASE}/google_login/${USER_ID}`);
-      if (!res.ok) throw new Error("Failed to get Google auth URL");
-      const data = await res.json();
+    const res = await fetch(`${API_BASE}/google_login/${USER_ID}`);
+    if (!res.ok) throw new Error("Failed to get Google auth URL");
+    const data = await res.json();
+    const url = data.auth_url;
 
-      const url = data.auth_url;
-
-      if (tg) {
-        tg.openLink(url, { try_instant_view: true });
-      } else {
-        window.open(url, "_blank");
-      }
-    } catch (err) {
-      console.error("importFromGoogle error:", err);
-    }
+    if (tg) tg.openLink(url, { try_instant_view: true });
+    else window.open(url, "_blank");
   }
 
-  // ✅ Фото -> бекенд /api/scan_image
+  // ✅ додати відскановані items “відразу”
+  async function addScannedToApi(items) {
+    const res = await fetch(`${API_BASE}/add_scanned/${USER_ID}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+
+    if (!res.ok) throw new Error("Failed to add scanned items");
+    return await res.json(); // {status:"ok", added:n}
+  }
+
+  // ✅ Фото -> /scan_image -> /add_scanned -> reload list
   async function handlePickedPhoto(file) {
     if (!file) return;
 
     try {
+      // 1) відправляємо фото на бек
       const form = new FormData();
       form.append("image", file);
       form.append("uid", USER_ID);
@@ -267,13 +258,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      console.log("scan_image:", data);
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      const count = Array.isArray(data.items) ? data.items.length : 0;
-      alert(`Знайдено дедлайнів: ${count}`);
+      // 2) одразу додаємо знайдене в дедлайни
+      if (!items.length) {
+        alert("Нічого не знайдено на фото");
+        return;
+      }
+
+      const addRes = await addScannedToApi(items);
+      console.log("add_scanned:", addRes);
+
+      // 3) оновлюємо список
+      await loadDeadlines();
+
+      // (опційно) короткий меседж
+      // alert(`Додано: ${addRes.added ?? items.length}`);
     } catch (err) {
       console.error(err);
-      alert("Не вдалося відправити фото");
+      alert("Не вдалося обробити фото");
     }
   }
 
@@ -361,16 +364,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Events
   // =======================
 
-  // "Додати дедлайн" -> модалка вибору
+  // Додати дедлайн -> показати bottom sheet
   addBtn?.addEventListener("click", openAddChoice);
 
-  // хрестик / фон
   closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
   addChoiceModal?.addEventListener("click", (e) => {
     if (e.target === addChoiceModal) closeAddChoice();
   });
 
-  // Вручну
   chooseManualBtn?.addEventListener("click", () => {
     closeAddChoice();
     showView("add");
@@ -385,18 +386,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // коли вибрав фото/файл
   photoInput?.addEventListener("change", (e) => {
     handlePickedPhoto(e.target.files?.[0]);
   });
 
-  // "Скасувати" у формі
   cancelAddBtn?.addEventListener("click", () => {
     showView("list");
     resetAddForm();
   });
 
-  // Сабміт форми
   addForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -421,19 +419,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // "Видалити"
   removeBtn?.addEventListener("click", () => {
     fillRemoveList();
     openRemoveModal();
   });
 
   closeRemoveBtn?.addEventListener("click", closeRemoveModal);
-
   removeModal?.addEventListener("click", (e) => {
     if (e.target === removeModal) closeRemoveModal();
   });
 
-  // Сортування
   sortBtn?.addEventListener("click", () => {
     if (!deadlines.length) return;
 
@@ -445,7 +440,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     sortAsc = !sortAsc;
     if (sortBtn) sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-
     renderDeadlines();
   });
 
@@ -455,5 +449,5 @@ document.addEventListener("DOMContentLoaded", () => {
   // Start
   // =======================
   showView("list");
-  loadDeadlines();
+  loadDeadlines().catch(console.error);
 });
