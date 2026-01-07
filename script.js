@@ -50,9 +50,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const timeInput = document.getElementById("time");
   const cancelAddBtn = document.getElementById("cancelAdd");
 
+  // remove modal
   const removeModal = document.getElementById("removeModal");
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
+
+  // ✅ NEW: add choice modal
+  const addChoiceModal = document.getElementById("addChoiceModal");
+  const chooseManualBtn = document.getElementById("chooseManualBtn");
+  const choosePhotoBtn = document.getElementById("choosePhotoBtn");
+  const closeAddChoice = document.getElementById("closeAddChoice");
+  const photoInput = document.getElementById("deadlinePhotoInput");
+
+  // ✅ NEW: scan modal
+  const scanModal = document.getElementById("scanModal");
+  const scanList = document.getElementById("scanList");
+  const scanAddSelected = document.getElementById("scanAddSelected");
+  const scanCancel = document.getElementById("scanCancel");
+
+  let lastScanItems = [];
 
   // =======================
   //  В'юхи
@@ -70,22 +86,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  Модалка видалення
+  //  Модалки (уніфіковано через .show)
   // =======================
-  function openRemoveModal() {
-    if (!removeModal) return;
-    removeModal.classList.add("show");          // 🔴 важливо: .show, як у CSS
-    removeModal.setAttribute("aria-hidden", "false");
+  function openModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.add("show");
+    modalEl.setAttribute("aria-hidden", "false");
   }
 
-  function closeRemoveModal() {
-    if (!removeModal) return;
-    removeModal.classList.remove("show");       // 🔴 теж .show
-    removeModal.setAttribute("aria-hidden", "true");
+  function closeModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.remove("show");
+    modalEl.setAttribute("aria-hidden", "true");
   }
 
   // =======================
-  //  Рендер списку (картки .card.dark)
+  //  Рендер списку
   // =======================
   function renderDeadlines() {
     if (!list) return;
@@ -101,17 +117,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const status = buildDeadlineStatus(d.date);
       const displayDate = formatForDisplay(d.date);
 
-      const card = document.createElement('div');
-      card.className = 'card dark';
+      const card = document.createElement("div");
+      card.className = "card dark";
 
       card.innerHTML = `
         <div>
           <div class="card-top">
             <span class="tag">Дедлайн</span>
           </div>
-          <h3 class="card-title">${d.title}</h3>
+          <h3 class="card-title">${escapeHtml(d.title)}</h3>
           <div class="meta">
-            <span>${displayDate}</span>
+            <span>${escapeHtml(displayDate)}</span>
           </div>
         </div>
         <div class="due ${status.variant}">
@@ -130,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
     removeList.innerHTML = "";
 
     if (!deadlines.length) {
-      removeList.innerHTML = `<div class="empty">Немає що видаляти </div>`;
+      removeList.innerHTML = `<div class="empty">Немає що видаляти</div>`;
       return;
     }
 
@@ -144,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "btn danger small";  // danger + small є в CSS
+      btn.className = "btn danger small";
       btn.textContent = "Видалити";
 
       btn.addEventListener("click", async () => {
@@ -160,6 +176,39 @@ document.addEventListener("DOMContentLoaded", () => {
       row.appendChild(titleDiv);
       row.appendChild(btn);
       removeList.appendChild(row);
+    });
+  }
+
+  // =======================
+  //  ✅ NEW: рендер знайдених дедлайнів зі скану
+  // =======================
+  function renderScanItems(items) {
+    if (!scanList) return;
+    scanList.innerHTML = "";
+
+    if (!items.length) {
+      scanList.innerHTML = `<div class="empty">Нічого не знайшов 😕</div>`;
+      return;
+    }
+
+    items.forEach((it, idx) => {
+      const title = it.title || "Без назви";
+      const date = it.date || "";
+      const time = it.time || "";
+
+      const row = document.createElement("div");
+      row.className = "card dark";
+
+      row.innerHTML = `
+        <div style="display:flex; gap:10px; align-items:flex-start; width:100%;">
+          <input type="checkbox" checked data-idx="${idx}" style="margin-top:6px;">
+          <div style="flex:1;">
+            <div class="card-title">${escapeHtml(title)}</div>
+            <div class="meta"><span>${escapeHtml(date)} ${escapeHtml(time)}</span></div>
+          </div>
+        </div>
+      `;
+      scanList.appendChild(row);
     });
   }
 
@@ -220,19 +269,45 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Google auth URL:", url);
 
       if (tg) {
-  tg.openLink(url, { try_instant_view: true });
-} else {
-  window.open(url, "_blank");
-}
-
+        tg.openLink(url, { try_instant_view: true });
+      } else {
+        window.open(url, "_blank");
+      }
     } catch (err) {
       console.error("importFromGoogle error:", err);
     }
   }
 
+  // ✅ NEW: scan image -> get deadlines
+  async function scanImage(file) {
+    const form = new FormData();
+    form.append("image", file);
+    form.append("uid", USER_ID); // якщо хочеш на бекенді знати користувача
+
+    const res = await fetch(`${API_BASE}/scan_image`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!res.ok) {
+      throw new Error("Scan failed");
+    }
+
+    return await res.json(); // { items: [...] }
+  }
+
   // =======================
   //  Хелпери
   // =======================
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   function formatDateTime(dateStr, timeStr) {
     if (!dateStr) return "";
     if (!timeStr) return dateStr;
@@ -281,61 +356,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const dateObj = toDateObj(dateStr);
     if (!dateObj) {
-      return {
-        label: "СТАТУС",
-        value: "Невідомо",
-        note: "",
-        variant: "unknown",
-      };
+      return { label: "СТАТУС", value: "Невідомо", note: "", variant: "unknown" };
     }
 
     const diff = dateObj.getTime() - Date.now();
 
     if (diff < 0) {
-      return {
-        label: "СТАТУС",
-        value: "Протерміновано",
-        note: "",
-        variant: "overdue",
-      };
+      return { label: "СТАТУС", value: "Протерміновано", note: "", variant: "overdue" };
     }
 
     const days = Math.floor(diff / DAY);
     const hours = Math.floor((diff % DAY) / HOUR);
 
     if (diff < HOUR) {
-      return {
-        label: "ЗАЛИШИЛОСЬ",
-        value: "сьогодні",
-        note: "",
-        variant: "soon",
-      };
+      return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", note: "", variant: "soon" };
     }
 
     if (days === 0) {
-      return {
-        label: "ЗАЛИШИЛОСЬ",
-        value: `сьогодні (${hours || 1} год)`,
-        note: "",
-        variant: "soon",
-      };
+      return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, note: "", variant: "soon" };
     }
 
     if (days === 1) {
-      return {
-        label: "ЗАЛИШИЛОСЬ",
-        value: "1 день",
-        note: "",
-        variant: "soon",
-      };
+      return { label: "ЗАЛИШИЛОСЬ", value: "1 день", note: "", variant: "soon" };
     }
 
-    return {
-      label: "ЗАЛИШИЛОСЬ",
-      value: ` ${days} ${pluralDays(days)}`,
-      note: "",
-      variant: "ok",
-    };
+    return { label: "ЗАЛИШИЛОСЬ", value: `${days} ${pluralDays(days)}`, note: "", variant: "ok" };
   }
 
   function resetAddForm() {
@@ -348,10 +393,99 @@ document.addEventListener("DOMContentLoaded", () => {
   //  Обробники подій
   // =======================
 
-  // "Додати дедлайн"
+  // ✅ "Додати дедлайн" -> тепер відкриває вибір (вручну/фото)
   addBtn?.addEventListener("click", () => {
-    console.log("addBtn clicked");
+    console.log("addBtn clicked -> open addChoiceModal");
+    openModal(addChoiceModal);
+  });
+
+  // ✅ Вибір "Вручну"
+  chooseManualBtn?.addEventListener("click", () => {
+    closeModal(addChoiceModal);
     showView("add");
+  });
+
+  // ✅ Вибір "Фото"
+  choosePhotoBtn?.addEventListener("click", () => {
+    photoInput.value = "";
+    photoInput.click();
+  });
+
+  // ✅ Закрити вибір
+  closeAddChoice?.addEventListener("click", () => {
+    closeModal(addChoiceModal);
+  });
+
+  // ✅ Клік по фону модалки вибору -> закрити
+  addChoiceModal?.addEventListener("click", (e) => {
+    if (e.target === addChoiceModal) closeModal(addChoiceModal);
+  });
+
+  // ✅ Обробка фото
+  photoInput?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    closeModal(addChoiceModal);
+
+    try {
+      const data = await scanImage(file);
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      if (!items.length) {
+        alert("Нічого не знайшов 😕 Спробуй інше фото або введи вручну.");
+        return;
+      }
+
+      lastScanItems = items;
+      renderScanItems(items);
+      openModal(scanModal);
+    } catch (err) {
+      console.error(err);
+      alert("Не вдалося просканувати фото. Спробуй ще раз.");
+    }
+  });
+
+  // ✅ Додати вибране зі скану
+  scanAddSelected?.addEventListener("click", async () => {
+    const checks = [...scanList.querySelectorAll("input[type=checkbox]")];
+    const selected = checks
+      .filter((ch) => ch.checked)
+      .map((ch) => lastScanItems[Number(ch.dataset.idx)]);
+
+    if (!selected.length) {
+      alert("Нічого не вибрано.");
+      return;
+    }
+
+    try {
+      for (const it of selected) {
+        const title = (it.title || "").trim() || "Дедлайн";
+        const date = (it.date || "").trim();
+        const time = (it.time || "").trim() || "18:00";
+
+        if (!date) continue;
+
+        const fullDate = formatDateTime(date, time);
+        await addDeadlineApi(title, fullDate);
+      }
+
+      closeModal(scanModal);
+      alert("Додано ✅");
+      showView("list");
+    } catch (err) {
+      console.error(err);
+      alert("Не вдалося додати вибране.");
+    }
+  });
+
+  // ✅ Скасувати скан
+  scanCancel?.addEventListener("click", () => {
+    closeModal(scanModal);
+  });
+
+  scanModal?.addEventListener("click", (e) => {
+    if (e.target === scanModal) closeModal(scanModal);
   });
 
   // "Скасувати" у формі
@@ -361,7 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resetAddForm();
   });
 
-  // Сабміт форми
+  // Сабміт форми (вручну)
   addForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     console.log("addForm submit");
@@ -391,20 +525,17 @@ document.addEventListener("DOMContentLoaded", () => {
   removeBtn?.addEventListener("click", () => {
     console.log("removeBtn clicked");
     fillRemoveList();
-    openRemoveModal();
+    openModal(removeModal);
   });
 
-  // Закрити модалку
+  // Закрити модалку видалення
   closeRemoveBtn?.addEventListener("click", () => {
     console.log("closeRemove clicked");
-    closeRemoveModal();
+    closeModal(removeModal);
   });
 
-  // Клік по фону модалки → закрити
   removeModal?.addEventListener("click", (e) => {
-    if (e.target === removeModal) {
-      closeRemoveModal();
-    }
+    if (e.target === removeModal) closeModal(removeModal);
   });
 
   // Сортування
@@ -420,9 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     sortAsc = !sortAsc;
-    if (sortBtn) {
-      sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-    }
+    if (sortBtn) sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
 
     renderDeadlines();
   });
