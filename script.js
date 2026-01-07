@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM loaded");
 
   // =======================
-  //  Telegram WebApp
+  // Telegram WebApp
   // =======================
   const tg = window.Telegram?.WebApp || null;
 
@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  API
+  // API
   // =======================
   const API_BASE = "https://nahadayka-backend.onrender.com/api";
 
@@ -26,13 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const USER_ID = getUserId();
 
   // =======================
-  //  СТАН
+  // СТАН
   // =======================
   let deadlines = [];
   let sortAsc = true;
 
   // =======================
-  //  DOM-елементи
+  // DOM-елементи
   // =======================
   const viewList = document.getElementById("view-list");
   const viewAdd = document.getElementById("view-add");
@@ -50,28 +50,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const timeInput = document.getElementById("time");
   const cancelAddBtn = document.getElementById("cancelAdd");
 
-  // remove modal
   const removeModal = document.getElementById("removeModal");
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
 
-  // ✅ NEW: add choice modal
+  // ✅ Нове: модалка вибору
   const addChoiceModal = document.getElementById("addChoiceModal");
+  const closeAddChoiceBtn = document.getElementById("closeAddChoice");
   const chooseManualBtn = document.getElementById("chooseManualBtn");
-  const choosePhotoBtn = document.getElementById("choosePhotoBtn");
-  const closeAddChoice = document.getElementById("closeAddChoice");
-  const photoInput = document.getElementById("deadlinePhotoInput");
+  const chooseCameraBtn = document.getElementById("chooseCameraBtn");
+  const chooseGalleryBtn = document.getElementById("chooseGalleryBtn");
 
-  // ✅ NEW: scan modal
-  const scanModal = document.getElementById("scanModal");
-  const scanList = document.getElementById("scanList");
-  const scanAddSelected = document.getElementById("scanAddSelected");
-  const scanCancel = document.getElementById("scanCancel");
-
-  let lastScanItems = [];
+  const photoCameraInput = document.getElementById("photoCameraInput");
+  const photoGalleryInput = document.getElementById("photoGalleryInput");
 
   // =======================
-  //  В'юхи
+  // В'юхи
   // =======================
   function showView(name) {
     if (!viewList || !viewAdd) return;
@@ -86,22 +80,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  Модалки (уніфіковано через .show)
+  // Модалки
   // =======================
-  function openModal(modalEl) {
-    if (!modalEl) return;
-    modalEl.classList.add("show");
-    modalEl.setAttribute("aria-hidden", "false");
+  function openRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.add("show");
+    removeModal.setAttribute("aria-hidden", "false");
   }
 
-  function closeModal(modalEl) {
-    if (!modalEl) return;
-    modalEl.classList.remove("show");
-    modalEl.setAttribute("aria-hidden", "true");
+  function closeRemoveModal() {
+    if (!removeModal) return;
+    removeModal.classList.remove("show");
+    removeModal.setAttribute("aria-hidden", "true");
+  }
+
+  // ✅ sheet modal
+  function openAddChoice() {
+    if (!addChoiceModal) return;
+    addChoiceModal.classList.add("show");
+    addChoiceModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeAddChoice() {
+    if (!addChoiceModal) return;
+    addChoiceModal.classList.remove("show");
+    addChoiceModal.setAttribute("aria-hidden", "true");
   }
 
   // =======================
-  //  Рендер списку
+  // Рендер списку
   // =======================
   function renderDeadlines() {
     if (!list) return;
@@ -164,7 +171,6 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.textContent = "Видалити";
 
       btn.addEventListener("click", async () => {
-        console.log("Delete clicked for:", d.title);
         try {
           await deleteDeadlineApi(d.title);
         } catch (err) {
@@ -180,47 +186,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  ✅ NEW: рендер знайдених дедлайнів зі скану
-  // =======================
-  function renderScanItems(items) {
-    if (!scanList) return;
-    scanList.innerHTML = "";
-
-    if (!items.length) {
-      scanList.innerHTML = `<div class="empty">Нічого не знайшов 😕</div>`;
-      return;
-    }
-
-    items.forEach((it, idx) => {
-      const title = it.title || "Без назви";
-      const date = it.date || "";
-      const time = it.time || "";
-
-      const row = document.createElement("div");
-      row.className = "card dark";
-
-      row.innerHTML = `
-        <div style="display:flex; gap:10px; align-items:flex-start; width:100%;">
-          <input type="checkbox" checked data-idx="${idx}" style="margin-top:6px;">
-          <div style="flex:1;">
-            <div class="card-title">${escapeHtml(title)}</div>
-            <div class="meta"><span>${escapeHtml(date)} ${escapeHtml(time)}</span></div>
-          </div>
-        </div>
-      `;
-      scanList.appendChild(row);
-    });
-  }
-
-  // =======================
-  //  API-запити
+  // API
   // =======================
   async function loadDeadlines() {
     try {
       const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
       if (!res.ok) throw new Error("Failed to load deadlines");
       deadlines = await res.json();
-      console.log("Loaded deadlines:", deadlines);
       renderDeadlines();
       fillRemoveList();
     } catch (err) {
@@ -266,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       const url = data.auth_url;
-      console.log("Google auth URL:", url);
 
       if (tg) {
         tg.openLink(url, { try_instant_view: true });
@@ -278,26 +249,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ✅ NEW: scan image -> get deadlines
-  async function scanImage(file) {
-    const form = new FormData();
-    form.append("image", file);
-    form.append("uid", USER_ID); // якщо хочеш на бекенді знати користувача
+  // ✅ Фото -> бекенд /api/scan_image
+  async function handlePickedPhoto(file) {
+    if (!file) return;
 
-    const res = await fetch(`${API_BASE}/scan_image`, {
-      method: "POST",
-      body: form,
-    });
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      form.append("uid", USER_ID);
 
-    if (!res.ok) {
-      throw new Error("Scan failed");
+      const res = await fetch(`${API_BASE}/scan_image`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        alert("Помилка сканування фото (бекенд)");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("scan_image:", data);
+
+      // Поки що просто показуємо кількість
+      const count = Array.isArray(data.items) ? data.items.length : 0;
+      alert(`Знайдено дедлайнів: ${count}`);
+
+      // Далі зробимо: список + чекбокси + додати вибране
+    } catch (err) {
+      console.error(err);
+      alert("Не вдалося відправити фото");
     }
-
-    return await res.json(); // { items: [...] }
   }
 
   // =======================
-  //  Хелпери
+  // Helpers
   // =======================
   function escapeHtml(s) {
     return String(s ?? "")
@@ -336,8 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
         hour: "2-digit",
         minute: "2-digit",
       });
-    } catch (err) {
-      console.warn("formatForDisplay error:", err);
+    } catch {
       return dateStr;
     }
   }
@@ -356,31 +341,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const dateObj = toDateObj(dateStr);
     if (!dateObj) {
-      return { label: "СТАТУС", value: "Невідомо", note: "", variant: "unknown" };
+      return { label: "СТАТУС", value: "Невідомо", variant: "unknown" };
     }
 
     const diff = dateObj.getTime() - Date.now();
 
     if (diff < 0) {
-      return { label: "СТАТУС", value: "Протерміновано", note: "", variant: "overdue" };
+      return { label: "СТАТУС", value: "Протерміновано", variant: "overdue" };
     }
 
     const days = Math.floor(diff / DAY);
     const hours = Math.floor((diff % DAY) / HOUR);
 
     if (diff < HOUR) {
-      return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", note: "", variant: "soon" };
+      return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", variant: "soon" };
     }
 
     if (days === 0) {
-      return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, note: "", variant: "soon" };
+      return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, variant: "soon" };
     }
 
     if (days === 1) {
-      return { label: "ЗАЛИШИЛОСЬ", value: "1 день", note: "", variant: "soon" };
+      return { label: "ЗАЛИШИЛОСЬ", value: "1 день", variant: "soon" };
     }
 
-    return { label: "ЗАЛИШИЛОСЬ", value: `${days} ${pluralDays(days)}`, note: "", variant: "ok" };
+    return { label: "ЗАЛИШИЛОСЬ", value: `${days} ${pluralDays(days)}`, variant: "ok" };
   }
 
   function resetAddForm() {
@@ -390,115 +375,57 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  Обробники подій
+  // Events
   // =======================
 
-  // ✅ "Додати дедлайн" -> тепер відкриває вибір (вручну/фото)
+  // ✅ "Додати дедлайн" -> відкриває вибір
   addBtn?.addEventListener("click", () => {
-    console.log("addBtn clicked -> open addChoiceModal");
-    openModal(addChoiceModal);
+    openAddChoice();
   });
 
-  // ✅ Вибір "Вручну"
+  closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
+
+  addChoiceModal?.addEventListener("click", (e) => {
+    if (e.target === addChoiceModal) closeAddChoice();
+  });
+
+  // Вручну
   chooseManualBtn?.addEventListener("click", () => {
-    closeModal(addChoiceModal);
+    closeAddChoice();
     showView("add");
   });
 
-  // ✅ Вибір "Фото"
-  choosePhotoBtn?.addEventListener("click", () => {
-    photoInput.value = "";
-    photoInput.click();
+  // Камера
+  chooseCameraBtn?.addEventListener("click", () => {
+    closeAddChoice();
+    photoCameraInput.value = "";
+    photoCameraInput.click();
   });
 
-  // ✅ Закрити вибір
-  closeAddChoice?.addEventListener("click", () => {
-    closeModal(addChoiceModal);
+  // Галерея
+  chooseGalleryBtn?.addEventListener("click", () => {
+    closeAddChoice();
+    photoGalleryInput.value = "";
+    photoGalleryInput.click();
   });
 
-  // ✅ Клік по фону модалки вибору -> закрити
-  addChoiceModal?.addEventListener("click", (e) => {
-    if (e.target === addChoiceModal) closeModal(addChoiceModal);
+  photoCameraInput?.addEventListener("change", (e) => {
+    handlePickedPhoto(e.target.files?.[0]);
   });
 
-  // ✅ Обробка фото
-  photoInput?.addEventListener("change", async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    closeModal(addChoiceModal);
-
-    try {
-      const data = await scanImage(file);
-      const items = Array.isArray(data.items) ? data.items : [];
-
-      if (!items.length) {
-        alert("Нічого не знайшов 😕 Спробуй інше фото або введи вручну.");
-        return;
-      }
-
-      lastScanItems = items;
-      renderScanItems(items);
-      openModal(scanModal);
-    } catch (err) {
-      console.error(err);
-      alert("Не вдалося просканувати фото. Спробуй ще раз.");
-    }
-  });
-
-  // ✅ Додати вибране зі скану
-  scanAddSelected?.addEventListener("click", async () => {
-    const checks = [...scanList.querySelectorAll("input[type=checkbox]")];
-    const selected = checks
-      .filter((ch) => ch.checked)
-      .map((ch) => lastScanItems[Number(ch.dataset.idx)]);
-
-    if (!selected.length) {
-      alert("Нічого не вибрано.");
-      return;
-    }
-
-    try {
-      for (const it of selected) {
-        const title = (it.title || "").trim() || "Дедлайн";
-        const date = (it.date || "").trim();
-        const time = (it.time || "").trim() || "18:00";
-
-        if (!date) continue;
-
-        const fullDate = formatDateTime(date, time);
-        await addDeadlineApi(title, fullDate);
-      }
-
-      closeModal(scanModal);
-      alert("Додано ✅");
-      showView("list");
-    } catch (err) {
-      console.error(err);
-      alert("Не вдалося додати вибране.");
-    }
-  });
-
-  // ✅ Скасувати скан
-  scanCancel?.addEventListener("click", () => {
-    closeModal(scanModal);
-  });
-
-  scanModal?.addEventListener("click", (e) => {
-    if (e.target === scanModal) closeModal(scanModal);
+  photoGalleryInput?.addEventListener("change", (e) => {
+    handlePickedPhoto(e.target.files?.[0]);
   });
 
   // "Скасувати" у формі
   cancelAddBtn?.addEventListener("click", () => {
-    console.log("cancelAdd clicked");
     showView("list");
     resetAddForm();
   });
 
-  // Сабміт форми (вручну)
+  // Сабміт форми
   addForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    console.log("addForm submit");
 
     const title = titleInput.value.trim();
     const date = dateInput.value;
@@ -523,25 +450,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // "Видалити"
   removeBtn?.addEventListener("click", () => {
-    console.log("removeBtn clicked");
     fillRemoveList();
-    openModal(removeModal);
+    openRemoveModal();
   });
 
-  // Закрити модалку видалення
-  closeRemoveBtn?.addEventListener("click", () => {
-    console.log("closeRemove clicked");
-    closeModal(removeModal);
-  });
+  closeRemoveBtn?.addEventListener("click", closeRemoveModal);
 
   removeModal?.addEventListener("click", (e) => {
-    if (e.target === removeModal) closeModal(removeModal);
+    if (e.target === removeModal) closeRemoveModal();
   });
 
   // Сортування
   sortBtn?.addEventListener("click", () => {
-    console.log("sortBtn clicked");
-
     if (!deadlines.length) return;
 
     deadlines.sort((a, b) => {
@@ -556,13 +476,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderDeadlines();
   });
 
-  importBtn?.addEventListener("click", () => {
-    console.log("importBtn clicked");
-    importFromGoogle();
-  });
+  importBtn?.addEventListener("click", importFromGoogle);
 
   // =======================
-  //  Старт
+  // Start
   // =======================
   showView("list");
   loadDeadlines();
