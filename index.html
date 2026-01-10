@@ -14,24 +14,26 @@
 <body>
   <div class="app">
 
-    <!-- ✅ Header з правими кнопками -->
-    <header class="header header-row">
-      <div class="header-left">
-        <div class="bell-wrap logo-raw">
-          <img class="icon logo" src="logo.svg" alt="Логотип">
-        </div>
-      </div>
+    <header class="header">
+  <!-- кнопки справа зверху -->
+  <div class="header-actions">
+    <button id="settingsBtn" class="icon-btn" type="button" aria-label="Налаштування">⚙️</button>
+    <button id="infoBtn" class="icon-btn" type="button" aria-label="Інфо">ℹ️</button>
+  </div>
 
-      <div class="header-center">
-        <div class="title">Нагадайка</div>
-        <div class="subtitle">«Розумний бот, який пам’ятає про дедлайни, коли ти — ні».</div>
-      </div>
+  <!-- контент по центру -->
+  <div class="header-content">
+    <div class="bell-wrap logo-raw">
+      <img class="icon logo" src="logo.svg" alt="Логотип">
+    </div>
 
-      <div class="header-right">
-        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Налаштування">⚙️</button>
-        <button id="infoBtn" class="icon-btn" type="button" aria-label="Інфо">ℹ️</button>
-      </div>
-    </header>
+    <div class="title">Нагадайка</div>
+    <div class="subtitle">
+      «Розумний бот, який пам’ятає про дедлайни, коли ти — ні».
+    </div>
+  </div>
+</header>
+
 
     <div class="actions">
       <button id="addBtn" class="btn primary">Додати дедлайн</button>
