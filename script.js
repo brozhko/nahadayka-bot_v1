@@ -69,15 +69,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const aiAddSelectedBtn = document.getElementById("aiAddSelectedBtn");
   const aiCloseBtn = document.getElementById("aiCloseBtn");
 
-  // ✅ Settings / Info
-  const settingsBtn = document.getElementById("settingsBtn");
-  const infoBtn = document.getElementById("infoBtn");
+  // ✅ NEW: Menu modal + tabs
+  const menuBtn = document.getElementById("menuBtn");
+  const menuModal = document.getElementById("menuModal");
+  const menuCloseBtn = document.getElementById("menuCloseBtn");
 
-  const settingsModal = document.getElementById("settingsModal");
-  const infoModal = document.getElementById("infoModal");
-
-  const closeSettingsBtn = document.getElementById("closeSettings");
-  const closeInfoBtn = document.getElementById("closeInfo");
+  const tabInfo = document.getElementById("tabInfo");
+  const tabSettings = document.getElementById("tabSettings");
+  const paneInfo = document.getElementById("paneInfo");
+  const paneSettings = document.getElementById("paneSettings");
 
   // =======================
   // Views
@@ -111,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function openRemoveModal() {
     openModal(removeModal);
   }
-
   function closeRemoveModal() {
     closeModal(removeModal);
   }
@@ -139,20 +138,31 @@ document.addEventListener("DOMContentLoaded", () => {
     closeModal(aiResultModal);
   }
 
-  function openSettingsModal() {
-    openModal(settingsModal);
+  // ✅ NEW: Menu modal open/close + tabs
+  function openMenuModal() {
+    openModal(menuModal);
+    // default tab: Info
+    setMenuTab("info");
   }
 
-  function closeSettingsModal() {
-    closeModal(settingsModal);
+  function closeMenuModal() {
+    closeModal(menuModal);
   }
 
-  function openInfoModal() {
-    openModal(infoModal);
-  }
+  function setMenuTab(name) {
+    const isInfo = name === "info";
 
-  function closeInfoModal() {
-    closeModal(infoModal);
+    if (tabInfo) {
+      tabInfo.classList.toggle("active", isInfo);
+      tabInfo.setAttribute("aria-selected", isInfo ? "true" : "false");
+    }
+    if (tabSettings) {
+      tabSettings.classList.toggle("active", !isInfo);
+      tabSettings.setAttribute("aria-selected", !isInfo ? "true" : "false");
+    }
+
+    if (paneInfo) paneInfo.classList.toggle("active", isInfo);
+    if (paneSettings) paneSettings.classList.toggle("active", !isInfo);
   }
 
   // =======================
@@ -229,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ✅ render AI results modal content (NO min_confidence / NO per-item confidence)
+  // ✅ render AI results modal content (NO confidence)
   function renderAiResultsModal(data) {
     aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
 
@@ -342,7 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // ✅ AI PHOTO FLOW (modal)
+  // ✅ AI PHOTO FLOW
   // =======================
   async function handlePickedPhoto(file) {
     if (!file) return;
@@ -561,19 +571,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ✅ Settings / Info modal events
-  settingsBtn?.addEventListener("click", openSettingsModal);
-  infoBtn?.addEventListener("click", openInfoModal);
+  // ✅ Menu events
+  menuBtn?.addEventListener("click", openMenuModal);
+  menuCloseBtn?.addEventListener("click", closeMenuModal);
 
-  closeSettingsBtn?.addEventListener("click", closeSettingsModal);
-  settingsModal?.addEventListener("click", (e) => {
-    if (e.target === settingsModal) closeSettingsModal();
+  menuModal?.addEventListener("click", (e) => {
+    if (e.target === menuModal) closeMenuModal();
   });
 
-  closeInfoBtn?.addEventListener("click", closeInfoModal);
-  infoModal?.addEventListener("click", (e) => {
-    if (e.target === infoModal) closeInfoModal();
-  });
+  tabInfo?.addEventListener("click", () => setMenuTab("info"));
+  tabSettings?.addEventListener("click", () => setMenuTab("settings"));
 
   sortBtn?.addEventListener("click", () => {
     if (!deadlines.length) return;
