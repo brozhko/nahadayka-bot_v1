@@ -421,3 +421,95 @@ body {
   border: 1px solid rgba(90,169,255,0.25);
   white-space: nowrap;
 }
+
+/* =========================
+   Header layout (logo + title + right icons)
+   ========================= */
+
+.header.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-left {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.header-center {
+  flex: 1 1 auto;
+  min-width: 0; /* щоб текст коректно стискався */
+}
+
+.header-center .title {
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.header-center .subtitle {
+  margin-top: 4px;
+  opacity: 0.8;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.header-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* =========================
+   Icon buttons (⚙️ ℹ️)
+   ========================= */
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* =========================
+   Mobile tweaks
+   ========================= */
+
+@media (max-width: 420px) {
+  .header-center .subtitle {
+    display: none; /* щоб не займало місце */
+  }
+
+  .header-center .title {
+    font-size: 18px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+}
+
