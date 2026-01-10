@@ -337,3 +337,87 @@ body {
 .sheet-btn:active {
   transform: scale(0.99);
 }
+
+/* ===== AI modal - під твій стиль ===== */
+.modal-content.modal-lg{
+  max-width: 520px;
+  width: calc(100% - 28px);
+  border-radius: 18px;
+  background: rgba(13, 20, 32, 0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+  backdrop-filter: blur(14px);
+}
+
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.btn.icon{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+}
+
+/* meta під заголовком */
+.ai-meta{
+  font-size: 13px;
+  opacity: .85;
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* рядок з чекбоксом як “карточка” */
+.ai-row{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  width:100%;
+  cursor:pointer;
+}
+
+.ai-check{
+  margin-top: 6px;
+  width: 18px;
+  height: 18px;
+  accent-color: #5aa9ff; /* якщо не хочеш — прибери */
+}
+
+.ai-col{
+  width:100%;
+}
+
+.ai-col .card-title{
+  margin: 0 0 6px;
+}
+
+.ai-col .meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  opacity:.9;
+}
+
+/* бейдж confidence справа */
+.ai-conf{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(90,169,255,0.16);
+  border: 1px solid rgba(90,169,255,0.25);
+  white-space: nowrap;
+}
