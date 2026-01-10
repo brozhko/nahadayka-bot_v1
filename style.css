@@ -586,70 +586,44 @@ body {
 }
 
 /* =========================
-   FIX: only 2 top-right buttons (⚙️ + ℹ️)
-   вставити В КІНЕЦЬ style.css
+   FINAL FIX: buttons максимально високо (Telegram-safe)
    ========================= */
 
-/* гарантуємо точку відліку для абсолютного позиціювання */
 .header {
   position: relative !important;
 }
 
-/* ставимо твої кнопки саме в правий верхній кут */
 .header-right {
   position: absolute !important;
-  top: 14px !important;
-  right: 14px !important;
+
+  /* максимально високо, але без залазу під iOS / Telegram */
+  top: calc(env(safe-area-inset-top, 0px) + 2px) !important;
+  right: 10px !important;
 
   display: flex !important;
-  flex-direction: row !important;   /* дві кнопки в ряд */
-  gap: 10px !important;
+  flex-direction: row !important;
+  gap: 8px !important;
 
   z-index: 999 !important;
   align-items: center !important;
-  justify-content: center !important;
 }
 
-/* робимо кнопки нормального розміру і без “вилазів” */
+/* компактні кнопки */
 .header-right .icon-btn {
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 12px !important;
-
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  background: rgba(255,255,255,0.06) !important;
-
-  color: #fff !important;
-  font-size: 18px !important;
-
-  display: grid !important;
-  place-items: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 11px !important;
 
   padding: 0 !important;
   margin: 0 !important;
 
+  display: grid !important;
+  place-items: center !important;
+
   cursor: pointer !important;
-  user-select: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
-/* натискання */
 .header-right .icon-btn:active {
   transform: scale(0.96) !important;
 }
-
-/* мобілка/телеграм: трохи компактніше */
-@media (max-width: 420px) {
-  .header-right {
-    top: 2px !important;
-    right: 10px !important;
-    gap: 8px !important;
-  }
-
-  .header-right .icon-btn {
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 11px !important;
-  }
-}
-
