@@ -203,15 +203,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ✅ render AI results modal content
+  // ✅ render AI results modal content (NO min_confidence / NO per-item confidence)
   function renderAiResultsModal(data) {
     aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
 
+    // ✅ тільки корисна інфа для користувача
     if (aiResultMeta) {
       const parts = [];
-      if (data.cached) parts.push("✅ Кеш (це фото вже аналізували)");
-      if (typeof data.remaining_today === "number") parts.push(`Залишилось сьогодні: ${data.remaining_today}`);
-      if (typeof data.min_confidence === "number") parts.push(`min_confidence: ${data.min_confidence}`);
+
+      if (data.cached) parts.push("♻️ Кеш: це фото вже аналізували");
+
+      if (typeof data.remaining_today === "number") {
+        parts.push(`⏳ Залишилось сканувань сьогодні: ${data.remaining_today}`);
+      }
+
       aiResultMeta.textContent = parts.join(" • ");
     }
 
@@ -227,11 +232,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const dueDate = d?.due_date ?? null;
       const dueTime = d?.due_time ?? "23:59";
       const title = d?.title ?? "Дедлайн";
-      const conf = typeof d?.confidence === "number" ? d.confidence : Number(d?.confidence ?? 0);
 
       const row = document.createElement("div");
       row.className = "card dark";
 
+      // ✅ без ⭐ confidence
       row.innerHTML = `
         <label class="ai-row">
           <input type="checkbox" class="ai-check" data-idx="${idx}" checked>
@@ -239,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="card-title">${escapeHtml(title)}</div>
             <div class="meta">
               <span>📅 ${escapeHtml(String(dueDate || "без дати"))} ${escapeHtml(String(dueTime || ""))}</span>
-              <span class="ai-conf">⭐ ${Number.isFinite(conf) ? conf.toFixed(2) : "0.00"}</span>
             </div>
           </div>
         </label>
@@ -317,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // ✅ AI PHOTO FLOW (modal instead of confirm)
+  // ✅ AI PHOTO FLOW (modal)
   // =======================
   async function handlePickedPhoto(file) {
     if (!file) return;
@@ -349,10 +353,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // show modal with checkboxes
       renderAiResultsModal(data);
       openAiResultModal();
-
     } catch (err) {
       console.error(err);
       if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
