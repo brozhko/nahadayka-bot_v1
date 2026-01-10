@@ -627,3 +627,46 @@ body {
 .header-right .icon-btn:active {
   transform: scale(0.96) !important;
 }
+
+/* =========================
+   REAL FIX — кнопки реально вгорі
+   (бо вони в .header-content)
+   ========================= */
+
+/* точка відліку */
+.header {
+  position: relative !important;
+}
+
+/* обидві кнопки */
+#settingsBtn,
+#infoBtn {
+  position: absolute !important;
+
+  /* МАКСИМАЛЬНО ВГОРІ + safe-area */
+  top: calc(env(safe-area-inset-top, 0px) + 4px) !important;
+
+  z-index: 9999 !important;
+}
+
+/* права кнопка (ℹ️) */
+#infoBtn {
+  right: 10px !important;
+}
+
+/* ліва з двох (⚙️) */
+#settingsBtn {
+  right: 54px !important; /* 36px кнопка + gap */
+}
+
+/* компактний розмір */
+#settingsBtn,
+#infoBtn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 11px !important;
+
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+}
