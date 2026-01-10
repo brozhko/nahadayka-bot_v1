@@ -85,10 +85,25 @@
       </div>
     </div>
 
+    <!-- ✅ МОДАЛКА з результатами AI -->
+    <div id="aiResultModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h3 class="section-title">Знайдено на фото</h3>
+
+        <div id="aiResultMeta" class="ai-meta"></div>
+        <div id="aiResultList" class="ai-list"></div>
+
+        <div class="form-actions">
+          <button type="button" id="aiAddSelectedBtn" class="btn primary">Додати вибране</button>
+          <button type="button" id="aiCloseBtn" class="btn">Закрити</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ВАЖЛИВО: capture для камери -->
     <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none;">
   </div>
 
-  <script src="script.js?v=13"></script>
+  <script src="script.js?v=14"></script>
 </body>
 </html>
