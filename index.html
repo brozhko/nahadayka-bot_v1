@@ -13,12 +13,24 @@
 
 <body>
   <div class="app">
-    <header class="header">
-      <div class="bell-wrap logo-raw">
-        <img class="icon logo" src="logo.svg" alt="Іконка дзвінка">
+
+    <!-- ✅ Header з правими кнопками -->
+    <header class="header header-row">
+      <div class="header-left">
+        <div class="bell-wrap logo-raw">
+          <img class="icon logo" src="logo.svg" alt="Логотип">
+        </div>
       </div>
-      <div class="title">Нагадайка</div>
-      <div class="subtitle">«Розумний бот, який пам’ятає про дедлайни, коли ти — ні».</div>
+
+      <div class="header-center">
+        <div class="title">Нагадайка</div>
+        <div class="subtitle">«Розумний бот, який пам’ятає про дедлайни, коли ти — ні».</div>
+      </div>
+
+      <div class="header-right">
+        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Налаштування">⚙️</button>
+        <button id="infoBtn" class="icon-btn" type="button" aria-label="Інфо">ℹ️</button>
+      </div>
     </header>
 
     <div class="actions">
@@ -96,6 +108,48 @@
         <div class="form-actions">
           <button type="button" id="aiAddSelectedBtn" class="btn primary">Додати вибране</button>
           <button type="button" id="aiCloseBtn" class="btn">Закрити</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Налаштування -->
+    <div id="settingsModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h3 class="section-title">Налаштування</h3>
+
+        <div class="list">
+          <div class="card dark">
+            <div class="card-title">AI-скан фото</div>
+            <div class="meta"><span>Показувати зірочку для впевнених результатів</span></div>
+          </div>
+
+          <!-- тут далі можна додати перемикачі -->
+          <!-- Напр: <label class="switch">...</label> -->
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="closeSettings" class="btn">Закрити</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Інфо -->
+    <div id="infoModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h3 class="section-title">Про застосунок</h3>
+
+        <div class="card dark">
+          <div class="card-title">Нагадайка</div>
+          <div class="meta">
+            <span>Дедлайни, імпорт з Google, AI-скан фото.</span>
+          </div>
+          <div class="meta" style="margin-top:8px;">
+            <span>Версія: v1</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="closeInfo" class="btn">Закрити</button>
         </div>
       </div>
     </div>
