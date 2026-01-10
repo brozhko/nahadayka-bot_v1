@@ -1,606 +1,581 @@
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM loaded");
+/* =========================
+   Base / Reset
+   ========================= */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 
-  // =======================
-  // Telegram WebApp
-  // =======================
-  const tg = window.Telegram?.WebApp || null;
-  if (tg) {
-    tg.expand();
-    tg.ready?.();
+:root{
+  --bg-0: #0B121C;
+  --bg-1: #0A0F17;
+
+  --surface-1: rgba(18, 25, 38, 0.86);
+  --surface-2: rgba(22, 31, 48, 0.78);
+  --surface-3: rgba(255,255,255,0.06);
+
+  --border: rgba(255,255,255,0.09);
+  --border-strong: rgba(255,255,255,0.14);
+
+  --text-1: #E6EDF3;
+  --text-2: #9AA9C2;
+  --muted: #8B97AB;
+
+  --accent: #5AA9FF;
+  --accent-2: #7C5CFF;
+
+  --orange: #FF8A3D;
+  --danger: #ff5a50;
+
+  --radius-xl: 22px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+
+  --shadow-1: 0 18px 50px rgba(0,0,0,.55);
+  --shadow-2: inset 0 1px 0 rgba(255,255,255,0.06);
+
+  --blur: blur(14px);
+}
+
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text-1);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #1A2438 0%, rgba(26,36,56,0) 55%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  background-attachment: fixed;
+}
+
+/* =========================
+   App Layout
+   ========================= */
+.app{
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px 16px 64px;
+}
+
+/* =========================
+   Header
+   ========================= */
+.header{
+  position: relative;
+  text-align: center;
+  padding: 10px 8px 6px;
+}
+
+/* логотип-кружок */
+.bell-wrap{
+  position: relative;
+  width: 88px; height: 88px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(30,41,59,0.95) 0%, rgba(17,24,39,0.95) 100%);
+  box-shadow: var(--shadow-2), 0 16px 40px rgba(0,0,0,0.55);
+  border: 1px solid var(--border);
+  margin: 10px auto 10px;
+}
+
+.bell-wrap.logo-raw{
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.bell-wrap img{
+  width: 46px; height: 46px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.45));
+}
+
+.bell-wrap.logo-raw .logo{
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  filter: drop-shadow(0 12px 24px rgba(0,0,0,.55));
+}
+
+.badge{
+  position: absolute;
+  right: 4px; top: 4px;
+  min-width: 20px; height: 20px;
+  padding: 0 6px;
+  display: grid; place-items: center;
+  background: #FF5A3C;
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 999px;
+  box-shadow: 0 10px 25px rgba(255,90,60,0.45);
+}
+
+.title{
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+  margin: 2px 0 6px;
+}
+
+.subtitle{
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.35;
+  margin: 0 auto 12px;
+  max-width: 360px;
+  opacity: .95;
+}
+
+/* =========================
+   Header Top-right: MENU button
+   (поставить максимально вгорі + safe-area)
+   ========================= */
+.header-actions{
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 6px);
+  right: 10px;
+  z-index: 50;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Кнопка "МЕНЮ" — красива pill */
+.menu-btn{
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(20, 32, 50, 0.88) 0%, rgba(16, 24, 38, 0.88) 100%);
+  color: rgba(255,255,255,0.92);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  font-size: 12px;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+}
+
+.menu-btn:hover{
+  border-color: rgba(255,255,255,0.20);
+  background: linear-gradient(180deg, rgba(28, 44, 68, 0.90) 0%, rgba(16, 24, 38, 0.90) 100%);
+}
+
+.menu-btn:active{ transform: scale(0.98); }
+
+/* =========================
+   Actions (4 buttons)
+   ========================= */
+.actions{
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.btn{
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(180deg, rgba(26, 35, 50, 0.92) 0%, rgba(20, 28, 42, 0.92) 100%);
+  color: rgba(255,255,255,0.92);
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  box-shadow: var(--shadow-2), 0 14px 30px rgba(0,0,0,0.48);
+  cursor: pointer;
+  transition: transform .12s ease, background .15s ease, border-color .15s ease;
+}
+
+.btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(34, 46, 66, 0.92) 0%, rgba(22, 32, 50, 0.92) 100%);
+}
+
+.btn:active{ transform: translateY(0); }
+
+.btn.primary{
+  border-color: rgba(90,169,255,0.35);
+  background: linear-gradient(180deg, rgba(90,169,255,0.22) 0%, rgba(124,92,255,0.16) 100%),
+              linear-gradient(180deg, rgba(26, 35, 50, 0.92) 0%, rgba(20, 28, 42, 0.92) 100%);
+}
+
+.btn.small{
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.btn.danger{
+  border-color: rgba(255,90,80,0.25);
+  background: linear-gradient(180deg, rgba(255,90,80,0.22) 0%, rgba(211,59,46,0.12) 100%),
+              linear-gradient(180deg, rgba(26, 35, 50, 0.92) 0%, rgba(20, 28, 42, 0.92) 100%);
+}
+
+/* =========================
+   Views / Section
+   ========================= */
+.view{ display: none; }
+.view.active{ display: block; }
+
+.section-title{
+  margin: 22px 2px 8px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* =========================
+   Cards list
+   ========================= */
+.list{ display: grid; gap: 14px; margin-top: 10px; }
+
+.card{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 8px 16px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255,255,255,0.09);
+  background: linear-gradient(180deg, rgba(21, 30, 45, 0.92) 0%, rgba(16, 22, 35, 0.92) 100%);
+  box-shadow: 0 16px 38px rgba(0,0,0,.50);
+  transition: transform .14s ease;
+}
+
+.card:hover{ transform: translateY(-1px); }
+
+.card-top{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+.tag{
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(124,92,255,0.18);
+  border: 1px solid rgba(124,92,255,0.25);
+  color: #D7CFFF;
+}
+
+.card-title{
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.meta{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.due{
+  text-align: right;
+  min-width: 92px;
+}
+
+.due .label{
+  color: var(--orange);
+  font-size: 11px;
+  letter-spacing: .9px;
+  font-weight: 900;
+}
+
+.due .value{
+  margin-top: 2px;
+  color: var(--text-1);
+  font-weight: 950;
+  letter-spacing: .2px;
+  font-size: 16px;
+}
+
+.due.overdue .value{ color: #ff6b6b; }
+.due.unknown .value{ color: #7fb3ff; }
+
+.empty{
+  margin-top: 6px;
+  color: var(--text-2);
+  padding: 18px 4px;
+}
+
+/* =========================
+   Add Form
+   ========================= */
+.form-card{
+  background: linear-gradient(180deg, rgba(21, 30, 45, 0.92) 0%, rgba(16, 22, 35, 0.92) 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: 0 16px 38px rgba(0,0,0,.52);
+  display: grid;
+  gap: 14px;
+}
+
+.grid-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 420px){ .grid-2{ grid-template-columns: 1fr; } }
+
+.field{ display: grid; gap: 6px; }
+.field label{ color: var(--text-2); font-size: 13px; }
+
+.input{
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: var(--text-1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.input:focus{
+  border-color: rgba(90,169,255,0.35);
+  box-shadow: 0 0 0 3px rgba(90,169,255,0.18);
+}
+
+.form-actions{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* =========================
+   Modal base (used by remove / AI / menu)
+   ========================= */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+.modal.show{ display: flex; }
+
+.modal-content{
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--radius-xl);
+  background: rgba(14, 20, 32, 0.90);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.68);
+  backdrop-filter: var(--blur);
+  padding: 16px;
+}
+
+.modal .list{ max-height: 60vh; overflow: auto; }
+
+/* =========================
+   Bottom sheet (add choice)
+   ========================= */
+.sheet{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0,0,0,0.55);
+  z-index: 9999;
+}
+
+.sheet.show{ display: flex; }
+
+.sheet-card{
+  width: 100%;
+  max-width: 380px;
+  border-radius: var(--radius-xl);
+  padding: 14px;
+  background: rgba(20, 27, 41, 0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+  backdrop-filter: blur(12px);
+}
+
+.sheet-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 10px 2px;
+}
+
+.sheet-title{ font-size: 18px; font-weight: 900; }
+
+.sheet-close{
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet-body{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet-btn{
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.95);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+}
+
+.sheet-btn:active{ transform: scale(0.99); }
+
+/* =========================
+   AI modal additions
+   ========================= */
+.ai-meta{
+  font-size: 13px;
+  opacity: .88;
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.ai-row{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  width:100%;
+  cursor:pointer;
+}
+
+.ai-check{
+  margin-top: 6px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.ai-col{ width:100%; }
+
+/* =========================
+   ✅ MENU MODAL (tabs)
+   ========================= */
+.menu-modal .modal-content{
+  max-width: 440px;
+  padding: 14px;
+}
+
+.menu-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 4px 10px;
+}
+
+.menu-title{
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: .2px;
+}
+
+.menu-close{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.menu-tabs{
+  display:flex;
+  gap: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 4px;
+}
+
+.menu-tab{
+  flex: 1 1 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.75);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.menu-tab.active{
+  background: linear-gradient(180deg, rgba(90,169,255,0.22) 0%, rgba(124,92,255,0.14) 100%);
+  color: rgba(255,255,255,0.95);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.menu-body{
+  margin-top: 12px;
+}
+
+.menu-pane{ display:none; }
+.menu-pane.active{ display:block; }
+
+.menu-card{
+  border: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.04) 100%);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 16px 34px rgba(0,0,0,0.40);
+}
+
+.menu-card-title{
+  font-weight: 950;
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.menu-card-text{
+  margin: 0;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.35;
+  font-size: 14px;
+}
+
+/* =========================
+   Mobile tweaks
+   ========================= */
+@media (max-width: 420px){
+  .title{ font-size: 30px; }
+  .subtitle{ font-size: 14px; }
+
+  .header-actions{
+    top: calc(env(safe-area-inset-top, 0px) + 4px);
+    right: 10px;
   }
 
-  // =======================
-  // API
-  // =======================
-  const API_BASE = "https://nahadayka-backend.onrender.com/api";
-
-  function getUserId() {
-    const id = tg?.initDataUnsafe?.user?.id;
-    const uid = id ? String(id) : "debug_user";
-    console.log("USER_ID =", uid);
-    return uid;
+  .menu-btn{
+    padding: 9px 12px;
+    font-size: 12px;
   }
-
-  const USER_ID = getUserId();
-
-  // =======================
-  // STATE
-  // =======================
-  let deadlines = [];
-  let sortAsc = true;
-
-  // current AI state
-  let aiFound = [];
-
-  // =======================
-  // DOM
-  // =======================
-  const viewList = document.getElementById("view-list");
-  const viewAdd = document.getElementById("view-add");
-  const list = document.getElementById("list");
-
-  const addBtn = document.getElementById("addBtn");
-  const removeBtn = document.getElementById("removeBtn");
-  const sortBtn = document.getElementById("sortBtn");
-  const importBtn = document.getElementById("importBtn");
-
-  const addForm = document.getElementById("addForm");
-  const titleInput = document.getElementById("title");
-  const dateInput = document.getElementById("date");
-  const timeInput = document.getElementById("time");
-  const cancelAddBtn = document.getElementById("cancelAdd");
-
-  const removeModal = document.getElementById("removeModal");
-  const removeList = document.getElementById("removeList");
-  const closeRemoveBtn = document.getElementById("closeRemove");
-
-  // bottom sheet
-  const addChoiceModal = document.getElementById("addChoiceModal");
-  const closeAddChoiceBtn = document.getElementById("closeAddChoice");
-  const chooseManualBtn = document.getElementById("chooseManualBtn");
-  const choosePhotoBtn = document.getElementById("choosePhotoBtn");
-  const photoInput = document.getElementById("photoInput");
-
-  // ✅ AI result modal
-  const aiResultModal = document.getElementById("aiResultModal");
-  const aiResultMeta = document.getElementById("aiResultMeta");
-  const aiResultList = document.getElementById("aiResultList");
-  const aiAddSelectedBtn = document.getElementById("aiAddSelectedBtn");
-  const aiCloseBtn = document.getElementById("aiCloseBtn");
-
-  // ✅ NEW: Menu modal + tabs
-  const menuBtn = document.getElementById("menuBtn");
-  const menuModal = document.getElementById("menuModal");
-  const menuCloseBtn = document.getElementById("menuCloseBtn");
-
-  const tabInfo = document.getElementById("tabInfo");
-  const tabSettings = document.getElementById("tabSettings");
-  const paneInfo = document.getElementById("paneInfo");
-  const paneSettings = document.getElementById("paneSettings");
-
-  // =======================
-  // Views
-  // =======================
-  function showView(name) {
-    if (!viewList || !viewAdd) return;
-    if (name === "add") {
-      viewAdd.classList.add("active");
-      viewList.classList.remove("active");
-    } else {
-      viewList.classList.add("active");
-      viewAdd.classList.remove("active");
-    }
-  }
-
-  // =======================
-  // Modals / Sheets
-  // =======================
-  function openModal(el) {
-    if (!el) return;
-    el.classList.add("show");
-    el.setAttribute("aria-hidden", "false");
-  }
-
-  function closeModal(el) {
-    if (!el) return;
-    el.classList.remove("show");
-    el.setAttribute("aria-hidden", "true");
-  }
-
-  function openRemoveModal() {
-    openModal(removeModal);
-  }
-  function closeRemoveModal() {
-    closeModal(removeModal);
-  }
-
-  function openAddChoice() {
-    if (!addChoiceModal) return;
-    addChoiceModal.classList.add("show");
-    addChoiceModal.setAttribute("aria-hidden", "false");
-  }
-
-  function closeAddChoice() {
-    if (!addChoiceModal) return;
-    addChoiceModal.classList.remove("show");
-    addChoiceModal.setAttribute("aria-hidden", "true");
-  }
-
-  function openAiResultModal() {
-    openModal(aiResultModal);
-  }
-
-  function closeAiResultModal() {
-    aiFound = [];
-    if (aiResultMeta) aiResultMeta.textContent = "";
-    if (aiResultList) aiResultList.innerHTML = "";
-    closeModal(aiResultModal);
-  }
-
-  // ✅ NEW: Menu modal open/close + tabs
-  function openMenuModal() {
-    openModal(menuModal);
-    // default tab: Info
-    setMenuTab("info");
-  }
-
-  function closeMenuModal() {
-    closeModal(menuModal);
-  }
-
-  function setMenuTab(name) {
-    const isInfo = name === "info";
-
-    if (tabInfo) {
-      tabInfo.classList.toggle("active", isInfo);
-      tabInfo.setAttribute("aria-selected", isInfo ? "true" : "false");
-    }
-    if (tabSettings) {
-      tabSettings.classList.toggle("active", !isInfo);
-      tabSettings.setAttribute("aria-selected", !isInfo ? "true" : "false");
-    }
-
-    if (paneInfo) paneInfo.classList.toggle("active", isInfo);
-    if (paneSettings) paneSettings.classList.toggle("active", !isInfo);
-  }
-
-  // =======================
-  // Render
-  // =======================
-  function renderDeadlines() {
-    if (!list) return;
-    list.innerHTML = "";
-
-    if (!deadlines.length) {
-      list.innerHTML = `<div class="empty">Тут поки порожньо. Додайте дедлайн.</div>`;
-      return;
-    }
-
-    deadlines.forEach((d) => {
-      const status = buildDeadlineStatus(d.date);
-      const displayDate = formatForDisplay(d.date);
-
-      const card = document.createElement("div");
-      card.className = "card dark";
-      card.innerHTML = `
-        <div>
-          <div class="card-top">
-            <span class="tag">Дедлайн</span>
-          </div>
-          <h3 class="card-title">${escapeHtml(d.title)}</h3>
-          <div class="meta">
-            <span>${escapeHtml(displayDate)}</span>
-          </div>
-        </div>
-        <div class="due ${status.variant}">
-          <div class="label">${status.label}</div>
-          <div class="value">${status.value}</div>
-        </div>
-      `;
-      list.appendChild(card);
-    });
-  }
-
-  function fillRemoveList() {
-    if (!removeList) return;
-    removeList.innerHTML = "";
-
-    if (!deadlines.length) {
-      removeList.innerHTML = `<div class="empty">Немає що видаляти</div>`;
-      return;
-    }
-
-    deadlines.forEach((d) => {
-      const row = document.createElement("div");
-      row.className = "card dark";
-
-      const titleDiv = document.createElement("div");
-      titleDiv.className = "card-title";
-      titleDiv.textContent = d.title;
-
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn danger small";
-      btn.textContent = "Видалити";
-
-      btn.addEventListener("click", async () => {
-        try {
-          await deleteDeadlineApi(d.title);
-        } catch (err) {
-          console.error(err);
-          alert("Не вдалося видалити дедлайн");
-        }
-      });
-
-      row.appendChild(titleDiv);
-      row.appendChild(btn);
-      removeList.appendChild(row);
-    });
-  }
-
-  // ✅ render AI results modal content (NO confidence)
-  function renderAiResultsModal(data) {
-    aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
-
-    if (aiResultMeta) {
-      const parts = [];
-      if (data.cached) parts.push("♻️ Кеш: це фото вже аналізували");
-      if (typeof data.remaining_today === "number") {
-        parts.push(`⏳ Залишилось сканувань сьогодні: ${data.remaining_today}`);
-      }
-      aiResultMeta.textContent = parts.join(" • ");
-    }
-
-    if (!aiResultList) return;
-
-    if (!aiFound.length) {
-      aiResultList.innerHTML = `<div class="empty">На фото не знайдено дедлайнів 😕</div>`;
-      return;
-    }
-
-    aiResultList.innerHTML = "";
-    aiFound.forEach((d, idx) => {
-      const dueDate = d?.due_date ?? null;
-      const dueTime = d?.due_time ?? "23:59";
-      const title = d?.title ?? "Дедлайн";
-
-      const row = document.createElement("div");
-      row.className = "card dark";
-
-      row.innerHTML = `
-        <label class="ai-row">
-          <input type="checkbox" class="ai-check" data-idx="${idx}" checked>
-          <div class="ai-col">
-            <div class="card-title">${escapeHtml(title)}</div>
-            <div class="meta">
-              <span>📅 ${escapeHtml(String(dueDate || "без дати"))} ${escapeHtml(String(dueTime || ""))}</span>
-            </div>
-          </div>
-        </label>
-      `;
-
-      aiResultList.appendChild(row);
-    });
-  }
-
-  function getSelectedAiDeadlines() {
-    if (!aiResultList) return [];
-    const checks = aiResultList.querySelectorAll(".ai-check");
-    const selected = [];
-    checks.forEach((ch) => {
-      if (!ch.checked) return;
-      const idx = Number(ch.getAttribute("data-idx"));
-      if (!Number.isFinite(idx)) return;
-      const item = aiFound[idx];
-      if (item) selected.push(item);
-    });
-    return selected;
-  }
-
-  // =======================
-  // API calls
-  // =======================
-  async function loadDeadlines() {
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`);
-    if (!res.ok) throw new Error("Failed to load deadlines");
-    deadlines = await res.json();
-    renderDeadlines();
-    fillRemoveList();
-  }
-
-  async function addDeadlineApi(title, date) {
-    const body = { title, date };
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error("Failed to add deadline");
-    await loadDeadlines();
-  }
-
-  async function deleteDeadlineApi(title) {
-    const res = await fetch(`${API_BASE}/deadlines/${USER_ID}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
-    if (!res.ok) throw new Error("Failed to delete deadline");
-    await loadDeadlines();
-  }
-
-  async function importFromGoogle() {
-    const res = await fetch(`${API_BASE}/google_login/${USER_ID}`);
-    if (!res.ok) throw new Error("Failed to get Google auth URL");
-    const data = await res.json();
-    const url = data.auth_url;
-
-    if (tg) tg.openLink(url, { try_instant_view: true });
-    else window.open(url, "_blank");
-  }
-
-  async function addAiScannedToApi(deadlinesArr) {
-    const res = await fetch(`${API_BASE}/add_ai_scanned/${USER_ID}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deadlines: deadlinesArr }),
-    });
-
-    if (!res.ok) throw new Error("Failed to add AI scanned deadlines");
-    return await res.json();
-  }
-
-  // =======================
-  // ✅ AI PHOTO FLOW
-  // =======================
-  async function handlePickedPhoto(file) {
-    if (!file) return;
-
-    const oldBtnText = choosePhotoBtn?.textContent;
-    try {
-      const form = new FormData();
-      form.append("image", file);
-      form.append("uid", USER_ID);
-
-      if (choosePhotoBtn) choosePhotoBtn.textContent = "⏳ Аналізую фото...";
-
-      const res = await fetch(`${API_BASE}/scan_deadlines_ai`, {
-        method: "POST",
-        body: form,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
-
-      if (res.status === 429) {
-        alert(data?.message || "Ліміт AI на сьогодні вичерпаний. Спробуй завтра.");
-        return;
-      }
-
-      if (!res.ok || data.error) {
-        alert("Помилка AI: " + (data.detail || data.error || "unknown"));
-        return;
-      }
-
-      renderAiResultsModal(data);
-      openAiResultModal();
-    } catch (err) {
-      console.error(err);
-      if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
-      alert("Не вдалося обробити фото");
-    }
-  }
-
-  // =======================
-  // Helpers
-  // =======================
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function formatDateTime(dateStr, timeStr) {
-    if (!dateStr) return "";
-    if (!timeStr) return dateStr;
-    return `${dateStr} ${timeStr}`;
-  }
-
-  function normalizeDateString(dateStr) {
-    if (!dateStr) return "";
-    return dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T");
-  }
-
-  function toDateObj(dateStr) {
-    const normalized = normalizeDateString(dateStr);
-    const parsed = new Date(normalized);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed;
-  }
-
-  function formatForDisplay(dateStr) {
-    const d = toDateObj(dateStr);
-    if (!d) return dateStr || "без дати";
-    try {
-      return d.toLocaleString("uk-UA", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
-  }
-
-  function pluralDays(n) {
-    const mod10 = n % 10;
-    const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11) return "день";
-    if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return "дні";
-    return "днів";
-  }
-
-  function buildDeadlineStatus(dateStr) {
-    const DAY = 24 * 60 * 60 * 1000;
-    const HOUR = 60 * 60 * 1000;
-
-    const dateObj = toDateObj(dateStr);
-    if (!dateObj) return { label: "СТАТУС", value: "Невідомо", variant: "unknown" };
-
-    const diff = dateObj.getTime() - Date.now();
-    if (diff < 0) return { label: "СТАТУС", value: "Протерміновано", variant: "overdue" };
-
-    const days = Math.floor(diff / DAY);
-    const hours = Math.floor((diff % DAY) / HOUR);
-
-    if (diff < HOUR) return { label: "ЗАЛИШИЛОСЬ", value: "сьогодні", variant: "soon" };
-    if (days === 0) return { label: "ЗАЛИШИЛОСЬ", value: `сьогодні (${hours || 1} год)`, variant: "soon" };
-    if (days === 1) return { label: "ЗАЛИШИЛОСЬ", value: "1 день", variant: "soon" };
-
-    return { label: "ЗАЛИШИЛОСЬ", value: `${days} ${pluralDays(days)}`, variant: "ok" };
-  }
-
-  function resetAddForm() {
-    if (!addForm) return;
-    addForm.reset();
-    if (timeInput) timeInput.value = "18:00";
-  }
-
-  // =======================
-  // Events
-  // =======================
-  addBtn?.addEventListener("click", openAddChoice);
-
-  closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
-  addChoiceModal?.addEventListener("click", (e) => {
-    if (e.target === addChoiceModal) closeAddChoice();
-  });
-
-  chooseManualBtn?.addEventListener("click", () => {
-    closeAddChoice();
-    showView("add");
-  });
-
-  choosePhotoBtn?.addEventListener("click", () => {
-    closeAddChoice();
-    if (photoInput) {
-      photoInput.value = "";
-      photoInput.click();
-    }
-  });
-
-  photoInput?.addEventListener("change", (e) => {
-    handlePickedPhoto(e.target.files?.[0]);
-  });
-
-  cancelAddBtn?.addEventListener("click", () => {
-    showView("list");
-    resetAddForm();
-  });
-
-  addForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const title = titleInput.value.trim();
-    const date = dateInput.value;
-    const time = timeInput.value;
-
-    if (!title || !date) {
-      alert("Введи назву і дату");
-      return;
-    }
-
-    const fullDate = formatDateTime(date, time);
-
-    try {
-      await addDeadlineApi(title, fullDate);
-      resetAddForm();
-      showView("list");
-    } catch (err) {
-      console.error(err);
-      alert("Не вдалося додати дедлайн");
-    }
-  });
-
-  removeBtn?.addEventListener("click", () => {
-    fillRemoveList();
-    openRemoveModal();
-  });
-
-  closeRemoveBtn?.addEventListener("click", closeRemoveModal);
-  removeModal?.addEventListener("click", (e) => {
-    if (e.target === removeModal) closeRemoveModal();
-  });
-
-  // ✅ AI modal events
-  aiCloseBtn?.addEventListener("click", closeAiResultModal);
-  aiResultModal?.addEventListener("click", (e) => {
-    if (e.target === aiResultModal) closeAiResultModal();
-  });
-
-  aiAddSelectedBtn?.addEventListener("click", async () => {
-    try {
-      const selected = getSelectedAiDeadlines();
-      if (!selected.length) {
-        alert("Вибери хоча б 1 дедлайн ✅");
-        return;
-      }
-
-      aiAddSelectedBtn.disabled = true;
-      aiAddSelectedBtn.textContent = "⏳ Додаю...";
-
-      const addRes = await addAiScannedToApi(selected);
-      closeAiResultModal();
-
-      await loadDeadlines();
-      alert(`✅ Додано: ${addRes.added ?? selected.length}`);
-    } catch (err) {
-      console.error(err);
-      alert("Не вдалося додати дедлайни");
-    } finally {
-      if (aiAddSelectedBtn) {
-        aiAddSelectedBtn.disabled = false;
-        aiAddSelectedBtn.textContent = "Додати вибране";
-      }
-    }
-  });
-
-  // ✅ Menu events
-  menuBtn?.addEventListener("click", openMenuModal);
-  menuCloseBtn?.addEventListener("click", closeMenuModal);
-
-  menuModal?.addEventListener("click", (e) => {
-    if (e.target === menuModal) closeMenuModal();
-  });
-
-  tabInfo?.addEventListener("click", () => setMenuTab("info"));
-  tabSettings?.addEventListener("click", () => setMenuTab("settings"));
-
-  sortBtn?.addEventListener("click", () => {
-    if (!deadlines.length) return;
-
-    deadlines.sort((a, b) => {
-      const ta = toDateObj(a.date)?.getTime() ?? Number.POSITIVE_INFINITY;
-      const tb = toDateObj(b.date)?.getTime() ?? Number.POSITIVE_INFINITY;
-      return sortAsc ? ta - tb : tb - ta;
-    });
-
-    sortAsc = !sortAsc;
-    if (sortBtn) sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
-    renderDeadlines();
-  });
-
-  importBtn?.addEventListener("click", importFromGoogle);
-
-  // =======================
-  // Start
-  // =======================
-  showView("list");
-  loadDeadlines().catch(console.error);
-});
+}
