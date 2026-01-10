@@ -199,8 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (!res.ok) throw new Error("Failed to add deadline");
-
-    // твій бек вертає {status:"added"} — тоді просто reload
     await loadDeadlines();
   }
 
@@ -225,57 +223,83 @@ document.addEventListener("DOMContentLoaded", () => {
     else window.open(url, "_blank");
   }
 
-  // ✅ додати відскановані items “відразу”
-  async function addScannedToApi(items) {
-    const res = await fetch(`${API_BASE}/add_scanned/${USER_ID}`, {
+  // ✅ AI deadlines -> save
+  async function addAiScannedToApi(deadlinesArr) {
+    const res = await fetch(`${API_BASE}/add_ai_scanned/${USER_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ deadlines: deadlinesArr }),
     });
 
-    if (!res.ok) throw new Error("Failed to add scanned items");
+    if (!res.ok) throw new Error("Failed to add AI scanned deadlines");
     return await res.json(); // {status:"ok", added:n}
   }
 
-  // ✅ Фото -> /scan_image -> /add_scanned -> reload list
+  // =======================
+  // ✅ AI PHOTO FLOW (NO OCR)
+  // =======================
   async function handlePickedPhoto(file) {
     if (!file) return;
 
     try {
-      // 1) відправляємо фото на бек
+      // 1) send photo to AI scan
       const form = new FormData();
       form.append("image", file);
       form.append("uid", USER_ID);
 
-      const res = await fetch(`${API_BASE}/scan_image`, {
+      // (опційно) трошки UI
+      if (choosePhotoBtn) choosePhotoBtn.textContent = "⏳ Аналізую фото...";
+
+      const res = await fetch(`${API_BASE}/scan_deadlines_ai`, {
         method: "POST",
         body: form,
       });
 
-      if (!res.ok) {
-        alert("Помилка сканування фото (бекенд)");
+      const data = await res.json().catch(() => ({}));
+
+      if (choosePhotoBtn) choosePhotoBtn.textContent = "Фото (AI)";
+
+      // 429 ліміт
+      if (res.status === 429) {
+        alert(data?.message || "Ліміт AI на сьогодні вичерпаний. Спробуй завтра.");
         return;
       }
 
-      const data = await res.json();
-      const items = Array.isArray(data.items) ? data.items : [];
-
-      // 2) одразу додаємо знайдене в дедлайни
-      if (!items.length) {
-        alert("Нічого не знайдено на фото");
+      if (!res.ok || data.error) {
+        alert("Помилка AI: " + (data.detail || data.error || "unknown"));
         return;
       }
 
-      const addRes = await addScannedToApi(items);
-      console.log("add_scanned:", addRes);
+      const found = Array.isArray(data.deadlines) ? data.deadlines : [];
 
-      // 3) оновлюємо список
+      if (!found.length) {
+        alert("На фото не знайдено дедлайнів 😕");
+        return;
+      }
+
+      // 2) show confirm to user
+      let msg = "🤖 Знайдено дедлайни:\n\n";
+      found.forEach((d, i) => {
+        msg += `${i + 1}) ${d.title}\n📅 ${d.due_date} ${d.due_time}\n`;
+        msg += `⭐ confidence: ${d.confidence}\n\n`;
+      });
+
+      if (data.cached) msg += "✅ (кеш: це фото вже аналізували)\n";
+      if (typeof data.remaining_today === "number") msg += `Залишилось сканів сьогодні: ${data.remaining_today}\n`;
+
+      const ok = confirm(msg + "\n➕ Додати в список?");
+      if (!ok) return;
+
+      // 3) save
+      const addRes = await addAiScannedToApi(found);
+      alert(`✅ Додано: ${addRes.added ?? found.length}`);
+
+      // 4) reload list
       await loadDeadlines();
 
-      // (опційно) короткий меседж
-      // alert(`Додано: ${addRes.added ?? items.length}`);
     } catch (err) {
       console.error(err);
+      if (choosePhotoBtn) choosePhotoBtn.textContent = "Фото (AI)";
       alert("Не вдалося обробити фото");
     }
   }
@@ -377,7 +401,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showView("add");
   });
 
-  // ✅ Фото (1 кнопка) -> iOS покаже меню
+  // ✅ Фото (AI)
   choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
     if (photoInput) {
