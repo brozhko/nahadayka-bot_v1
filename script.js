@@ -35,7 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   const viewList = document.getElementById("view-list");
   const viewAdd = document.getElementById("view-add");
-
   const list = document.getElementById("list");
 
   const addBtn = document.getElementById("addBtn");
@@ -53,14 +52,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
 
-  // ✅ bottom sheet: вибір способу
+  // bottom sheet
   const addChoiceModal = document.getElementById("addChoiceModal");
   const closeAddChoiceBtn = document.getElementById("closeAddChoice");
   const chooseManualBtn = document.getElementById("chooseManualBtn");
   const choosePhotoBtn = document.getElementById("choosePhotoBtn");
-
-  // ✅ один input -> iOS меню (Фототека/Камера/Файл)
   const photoInput = document.getElementById("photoInput");
+
+  // ✅ AI result modal
+  const aiResultModal = document.getElementById("aiResultModal");
+  const aiResultMeta = document.getElementById("aiResultMeta");
+  const aiResultList = document.getElementById("aiResultList");
+  const aiAddSelectedBtn = document.getElementById("aiAddSelectedBtn");
+  const aiCloseBtn = document.getElementById("aiCloseBtn");
+
+  // current AI state
+  let aiFound = [];
 
   // =======================
   // Views
@@ -77,18 +84,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // Modals
+  // Modals / Sheets
   // =======================
+  function openModal(el) {
+    if (!el) return;
+    el.classList.add("show");
+    el.setAttribute("aria-hidden", "false");
+  }
+
+  function closeModal(el) {
+    if (!el) return;
+    el.classList.remove("show");
+    el.setAttribute("aria-hidden", "true");
+  }
+
   function openRemoveModal() {
-    if (!removeModal) return;
-    removeModal.classList.add("show");
-    removeModal.setAttribute("aria-hidden", "false");
+    openModal(removeModal);
   }
 
   function closeRemoveModal() {
-    if (!removeModal) return;
-    removeModal.classList.remove("show");
-    removeModal.setAttribute("aria-hidden", "true");
+    closeModal(removeModal);
   }
 
   function openAddChoice() {
@@ -101,6 +116,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!addChoiceModal) return;
     addChoiceModal.classList.remove("show");
     addChoiceModal.setAttribute("aria-hidden", "true");
+  }
+
+  function openAiResultModal() {
+    openModal(aiResultModal);
+  }
+
+  function closeAiResultModal() {
+    aiFound = [];
+    if (aiResultMeta) aiResultMeta.textContent = "";
+    if (aiResultList) aiResultList.innerHTML = "";
+    closeModal(aiResultModal);
   }
 
   // =======================
@@ -121,7 +147,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const card = document.createElement("div");
       card.className = "card dark";
-
       card.innerHTML = `
         <div>
           <div class="card-top">
@@ -137,7 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="value">${status.value}</div>
         </div>
       `;
-
       list.appendChild(card);
     });
   }
@@ -179,6 +203,66 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ✅ render AI results modal content
+  function renderAiResultsModal(data) {
+    aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
+
+    if (aiResultMeta) {
+      const parts = [];
+      if (data.cached) parts.push("✅ Кеш (це фото вже аналізували)");
+      if (typeof data.remaining_today === "number") parts.push(`Залишилось сьогодні: ${data.remaining_today}`);
+      if (typeof data.min_confidence === "number") parts.push(`min_confidence: ${data.min_confidence}`);
+      aiResultMeta.textContent = parts.join(" • ");
+    }
+
+    if (!aiResultList) return;
+
+    if (!aiFound.length) {
+      aiResultList.innerHTML = `<div class="empty">На фото не знайдено дедлайнів 😕</div>`;
+      return;
+    }
+
+    aiResultList.innerHTML = "";
+    aiFound.forEach((d, idx) => {
+      const dueDate = d?.due_date ?? null;
+      const dueTime = d?.due_time ?? "23:59";
+      const title = d?.title ?? "Дедлайн";
+      const conf = typeof d?.confidence === "number" ? d.confidence : Number(d?.confidence ?? 0);
+
+      const row = document.createElement("div");
+      row.className = "card dark";
+
+      row.innerHTML = `
+        <label class="ai-row">
+          <input type="checkbox" class="ai-check" data-idx="${idx}" checked>
+          <div class="ai-col">
+            <div class="card-title">${escapeHtml(title)}</div>
+            <div class="meta">
+              <span>📅 ${escapeHtml(String(dueDate || "без дати"))} ${escapeHtml(String(dueTime || ""))}</span>
+              <span class="ai-conf">⭐ ${Number.isFinite(conf) ? conf.toFixed(2) : "0.00"}</span>
+            </div>
+          </div>
+        </label>
+      `;
+
+      aiResultList.appendChild(row);
+    });
+  }
+
+  function getSelectedAiDeadlines() {
+    if (!aiResultList) return [];
+    const checks = aiResultList.querySelectorAll(".ai-check");
+    const selected = [];
+    checks.forEach((ch) => {
+      if (!ch.checked) return;
+      const idx = Number(ch.getAttribute("data-idx"));
+      if (!Number.isFinite(idx)) return;
+      const item = aiFound[idx];
+      if (item) selected.push(item);
+    });
+    return selected;
+  }
+
   // =======================
   // API calls
   // =======================
@@ -197,7 +281,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-
     if (!res.ok) throw new Error("Failed to add deadline");
     await loadDeadlines();
   }
@@ -208,7 +291,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
-
     if (!res.ok) throw new Error("Failed to delete deadline");
     await loadDeadlines();
   }
@@ -223,7 +305,6 @@ document.addEventListener("DOMContentLoaded", () => {
     else window.open(url, "_blank");
   }
 
-  // ✅ AI deadlines -> save
   async function addAiScannedToApi(deadlinesArr) {
     const res = await fetch(`${API_BASE}/add_ai_scanned/${USER_ID}`, {
       method: "POST",
@@ -232,22 +313,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (!res.ok) throw new Error("Failed to add AI scanned deadlines");
-    return await res.json(); // {status:"ok", added:n}
+    return await res.json();
   }
 
   // =======================
-  // ✅ AI PHOTO FLOW (NO OCR)
+  // ✅ AI PHOTO FLOW (modal instead of confirm)
   // =======================
   async function handlePickedPhoto(file) {
     if (!file) return;
 
+    const oldBtnText = choosePhotoBtn?.textContent;
     try {
-      // 1) send photo to AI scan
       const form = new FormData();
       form.append("image", file);
       form.append("uid", USER_ID);
 
-      // (опційно) трошки UI
       if (choosePhotoBtn) choosePhotoBtn.textContent = "⏳ Аналізую фото...";
 
       const res = await fetch(`${API_BASE}/scan_deadlines_ai`, {
@@ -257,9 +337,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json().catch(() => ({}));
 
-      if (choosePhotoBtn) choosePhotoBtn.textContent = "Фото (AI)";
+      if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
 
-      // 429 ліміт
       if (res.status === 429) {
         alert(data?.message || "Ліміт AI на сьогодні вичерпаний. Спробуй завтра.");
         return;
@@ -270,36 +349,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const found = Array.isArray(data.deadlines) ? data.deadlines : [];
-
-      if (!found.length) {
-        alert("На фото не знайдено дедлайнів 😕");
-        return;
-      }
-
-      // 2) show confirm to user
-      let msg = "🤖 Знайдено дедлайни:\n\n";
-      found.forEach((d, i) => {
-        msg += `${i + 1}) ${d.title}\n📅 ${d.due_date} ${d.due_time}\n`;
-        msg += `⭐ confidence: ${d.confidence}\n\n`;
-      });
-
-      if (data.cached) msg += "✅ (кеш: це фото вже аналізували)\n";
-      if (typeof data.remaining_today === "number") msg += `Залишилось сканів сьогодні: ${data.remaining_today}\n`;
-
-      const ok = confirm(msg + "\n➕ Додати в список?");
-      if (!ok) return;
-
-      // 3) save
-      const addRes = await addAiScannedToApi(found);
-      alert(`✅ Додано: ${addRes.added ?? found.length}`);
-
-      // 4) reload list
-      await loadDeadlines();
+      // show modal with checkboxes
+      renderAiResultsModal(data);
+      openAiResultModal();
 
     } catch (err) {
       console.error(err);
-      if (choosePhotoBtn) choosePhotoBtn.textContent = "Фото (AI)";
+      if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
       alert("Не вдалося обробити фото");
     }
   }
@@ -365,7 +421,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!dateObj) return { label: "СТАТУС", value: "Невідомо", variant: "unknown" };
 
     const diff = dateObj.getTime() - Date.now();
-
     if (diff < 0) return { label: "СТАТУС", value: "Протерміновано", variant: "overdue" };
 
     const days = Math.floor(diff / DAY);
@@ -387,8 +442,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   // Events
   // =======================
-
-  // Додати дедлайн -> показати bottom sheet
   addBtn?.addEventListener("click", openAddChoice);
 
   closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
@@ -401,7 +454,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showView("add");
   });
 
-  // ✅ Фото (AI)
   choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
     if (photoInput) {
@@ -451,6 +503,39 @@ document.addEventListener("DOMContentLoaded", () => {
   closeRemoveBtn?.addEventListener("click", closeRemoveModal);
   removeModal?.addEventListener("click", (e) => {
     if (e.target === removeModal) closeRemoveModal();
+  });
+
+  // ✅ AI modal events
+  aiCloseBtn?.addEventListener("click", closeAiResultModal);
+  aiResultModal?.addEventListener("click", (e) => {
+    if (e.target === aiResultModal) closeAiResultModal();
+  });
+
+  aiAddSelectedBtn?.addEventListener("click", async () => {
+    try {
+      const selected = getSelectedAiDeadlines();
+      if (!selected.length) {
+        alert("Вибери хоча б 1 дедлайн ✅");
+        return;
+      }
+
+      aiAddSelectedBtn.disabled = true;
+      aiAddSelectedBtn.textContent = "⏳ Додаю...";
+
+      const addRes = await addAiScannedToApi(selected);
+      closeAiResultModal();
+
+      await loadDeadlines();
+      alert(`✅ Додано: ${addRes.added ?? selected.length}`);
+    } catch (err) {
+      console.error(err);
+      alert("Не вдалося додати дедлайни");
+    } finally {
+      if (aiAddSelectedBtn) {
+        aiAddSelectedBtn.disabled = false;
+        aiAddSelectedBtn.textContent = "Додати вибране";
+      }
+    }
   });
 
   sortBtn?.addEventListener("click", () => {
