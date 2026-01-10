@@ -30,6 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let deadlines = [];
   let sortAsc = true;
 
+  // current AI state
+  let aiFound = [];
+
   // =======================
   // DOM
   // =======================
@@ -66,8 +69,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const aiAddSelectedBtn = document.getElementById("aiAddSelectedBtn");
   const aiCloseBtn = document.getElementById("aiCloseBtn");
 
-  // current AI state
-  let aiFound = [];
+  // ✅ Settings / Info
+  const settingsBtn = document.getElementById("settingsBtn");
+  const infoBtn = document.getElementById("infoBtn");
+
+  const settingsModal = document.getElementById("settingsModal");
+  const infoModal = document.getElementById("infoModal");
+
+  const closeSettingsBtn = document.getElementById("closeSettings");
+  const closeInfoBtn = document.getElementById("closeInfo");
 
   // =======================
   // Views
@@ -127,6 +137,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (aiResultMeta) aiResultMeta.textContent = "";
     if (aiResultList) aiResultList.innerHTML = "";
     closeModal(aiResultModal);
+  }
+
+  function openSettingsModal() {
+    openModal(settingsModal);
+  }
+
+  function closeSettingsModal() {
+    closeModal(settingsModal);
+  }
+
+  function openInfoModal() {
+    openModal(infoModal);
+  }
+
+  function closeInfoModal() {
+    closeModal(infoModal);
   }
 
   // =======================
@@ -207,16 +233,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderAiResultsModal(data) {
     aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
 
-    // ✅ тільки корисна інфа для користувача
     if (aiResultMeta) {
       const parts = [];
-
       if (data.cached) parts.push("♻️ Кеш: це фото вже аналізували");
-
       if (typeof data.remaining_today === "number") {
         parts.push(`⏳ Залишилось сканувань сьогодні: ${data.remaining_today}`);
       }
-
       aiResultMeta.textContent = parts.join(" • ");
     }
 
@@ -236,7 +258,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("div");
       row.className = "card dark";
 
-      // ✅ без ⭐ confidence
       row.innerHTML = `
         <label class="ai-row">
           <input type="checkbox" class="ai-check" data-idx="${idx}" checked>
@@ -538,6 +559,20 @@ document.addEventListener("DOMContentLoaded", () => {
         aiAddSelectedBtn.textContent = "Додати вибране";
       }
     }
+  });
+
+  // ✅ Settings / Info modal events
+  settingsBtn?.addEventListener("click", openSettingsModal);
+  infoBtn?.addEventListener("click", openInfoModal);
+
+  closeSettingsBtn?.addEventListener("click", closeSettingsModal);
+  settingsModal?.addEventListener("click", (e) => {
+    if (e.target === settingsModal) closeSettingsModal();
+  });
+
+  closeInfoBtn?.addEventListener("click", closeInfoModal);
+  infoModal?.addEventListener("click", (e) => {
+    if (e.target === infoModal) closeInfoModal();
   });
 
   sortBtn?.addEventListener("click", () => {
