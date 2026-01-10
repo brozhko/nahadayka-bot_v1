@@ -15,25 +15,23 @@
   <div class="app">
 
     <header class="header">
-  <!-- кнопки справа зверху -->
-  <div class="header-actions">
-    <button id="settingsBtn" class="icon-btn" type="button" aria-label="Налаштування">⚙️</button>
-    <button id="infoBtn" class="icon-btn" type="button" aria-label="Інфо">ℹ️</button>
-  </div>
+      <!-- ✅ ОДНА кнопка Меню справа зверху -->
+      <div class="header-actions">
+        <button id="menuBtn" class="menu-pill" type="button" aria-label="Меню">Меню</button>
+      </div>
 
-  <!-- контент по центру -->
-  <div class="header-content">
-    <div class="bell-wrap logo-raw">
-      <img class="icon logo" src="logo.svg" alt="Логотип">
-    </div>
+      <!-- контент по центру -->
+      <div class="header-content">
+        <div class="bell-wrap logo-raw">
+          <img class="icon logo" src="logo.svg" alt="Логотип">
+        </div>
 
-    <div class="title">Нагадайка</div>
-    <div class="subtitle">
-      «Розумний бот, який пам’ятає про дедлайни, коли ти — ні».
-    </div>
-  </div>
-</header>
-
+        <div class="title">Нагадайка</div>
+        <div class="subtitle">
+          «Розумний бот, який пам’ятає про дедлайни, коли ти — ні».
+        </div>
+      </div>
+    </header>
 
     <div class="actions">
       <button id="addBtn" class="btn primary">Додати дедлайн</button>
@@ -114,44 +112,66 @@
       </div>
     </div>
 
-    <!-- ✅ Налаштування -->
-    <div id="settingsModal" class="modal" aria-hidden="true">
-      <div class="modal-content">
-        <h3 class="section-title">Налаштування</h3>
-
-        <div class="list">
-          <div class="card dark">
-            <div class="card-title">AI-скан фото</div>
-            <div class="meta"><span>Показувати зірочку для впевнених результатів</span></div>
-          </div>
-
-          <!-- тут далі можна додати перемикачі -->
-          <!-- Напр: <label class="switch">...</label> -->
+    <!-- ✅ MENU MODAL (Tabs: Інфо / Налаштування) -->
+    <div id="menuModal" class="menu-modal" aria-hidden="true">
+      <div class="menu-card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+        <div class="menu-head">
+          <div id="menuTitle" class="menu-title">Меню</div>
+          <button id="menuCloseBtn" class="menu-x" type="button" aria-label="Закрити">×</button>
         </div>
 
-        <div class="form-actions">
-          <button type="button" id="closeSettings" class="btn">Закрити</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ✅ Інфо -->
-    <div id="infoModal" class="modal" aria-hidden="true">
-      <div class="modal-content">
-        <h3 class="section-title">Про застосунок</h3>
-
-        <div class="card dark">
-          <div class="card-title">Нагадайка</div>
-          <div class="meta">
-            <span>Дедлайни, імпорт з Google, AI-скан фото.</span>
-          </div>
-          <div class="meta" style="margin-top:8px;">
-            <span>Версія: v1</span>
-          </div>
+        <div class="menu-tabs" role="tablist" aria-label="Меню вкладки">
+          <button id="tabInfo" class="menu-tab active" type="button" role="tab" aria-selected="true">
+            Інфо
+          </button>
+          <button id="tabSettings" class="menu-tab" type="button" role="tab" aria-selected="false">
+            Налаштування
+          </button>
         </div>
 
-        <div class="form-actions">
-          <button type="button" id="closeInfo" class="btn">Закрити</button>
+        <div class="menu-body">
+          <!-- INFO -->
+          <div id="paneInfo" class="menu-pane active" role="tabpanel">
+            <div class="menu-block">
+              <div class="menu-h">Нагадайка</div>
+              <div class="menu-p">Інформація про застосунок та можливості.</div>
+            </div>
+
+            <div class="menu-kv">
+              <div class="kv-row"><span>Версія</span><b>1.0</b></div>
+              <div class="kv-row"><span>Функції</span><b>Дедлайни • Google • AI фото</b></div>
+            </div>
+          </div>
+
+          <!-- SETTINGS -->
+          <div id="paneSettings" class="menu-pane" role="tabpanel">
+            <div class="menu-block">
+              <div class="menu-h">Налаштування</div>
+              <div class="menu-p">Тут можна буде додати перемикачі.</div>
+            </div>
+
+            <label class="menu-switch">
+              <div class="sw-text">
+                <div class="sw-title">AI-скан фото</div>
+                <div class="sw-sub">Показувати результат після аналізу</div>
+              </div>
+              <input id="settingAiScan" type="checkbox" checked>
+              <span class="sw-ui"></span>
+            </label>
+
+            <label class="menu-switch">
+              <div class="sw-text">
+                <div class="sw-title">Вібрація</div>
+                <div class="sw-sub">Легкий відгук при натисканні</div>
+              </div>
+              <input id="settingHaptics" type="checkbox" checked>
+              <span class="sw-ui"></span>
+            </label>
+
+            <div class="menu-note">
+              * Перемикачі зараз тільки UI (можемо підключити логіку).
+            </div>
+          </div>
         </div>
       </div>
     </div>
