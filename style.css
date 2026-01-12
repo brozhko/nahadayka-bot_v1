@@ -826,3 +826,12 @@ body{
 #paneSettings .menu-switch:first-child{
   margin-top: 0;
 }
+
+#paneSettings{
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#paneSettings .menu-switch:first-child{
+  margin-top: 0;
+}
