@@ -29,8 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   let deadlines = [];
   let sortAsc = true;
-
-  // AI found items
   let aiFound = [];
 
   // =======================
@@ -55,23 +53,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const removeList = document.getElementById("removeList");
   const closeRemoveBtn = document.getElementById("closeRemove");
 
-  // bottom sheet add choice
   const addChoiceModal = document.getElementById("addChoiceModal");
   const closeAddChoiceBtn = document.getElementById("closeAddChoice");
   const chooseManualBtn = document.getElementById("chooseManualBtn");
   const choosePhotoBtn = document.getElementById("choosePhotoBtn");
   const photoInput = document.getElementById("photoInput");
 
-  // AI result modal
   const aiResultModal = document.getElementById("aiResultModal");
   const aiResultMeta = document.getElementById("aiResultMeta");
   const aiResultList = document.getElementById("aiResultList");
   const aiAddSelectedBtn = document.getElementById("aiAddSelectedBtn");
   const aiCloseBtn = document.getElementById("aiCloseBtn");
 
-  // =======================
-  // ✅ MENU (one button + modal tabs)
-  // =======================
   const menuBtn = document.getElementById("menuBtn");
   const menuModal = document.getElementById("menuModal");
   const menuCloseBtn = document.getElementById("menuCloseBtn");
@@ -81,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const paneInfo = document.getElementById("paneInfo");
   const paneSettings = document.getElementById("paneSettings");
 
-  // optional UI toggles (only UI now)
   const settingAiScan = document.getElementById("settingAiScan");
   const settingHaptics = document.getElementById("settingHaptics");
 
@@ -90,7 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   function showView(name) {
     if (!viewList || !viewAdd) return;
-
     if (name === "add") {
       viewAdd.classList.add("active");
       viewList.classList.remove("active");
@@ -115,15 +106,9 @@ document.addEventListener("DOMContentLoaded", () => {
     el.setAttribute("aria-hidden", "true");
   }
 
-  // remove modal
-  function openRemoveModal() {
-    openModal(removeModal);
-  }
-  function closeRemoveModal() {
-    closeModal(removeModal);
-  }
+  function openRemoveModal() { openModal(removeModal); }
+  function closeRemoveModal() { closeModal(removeModal); }
 
-  // add choice sheet
   function openAddChoice() {
     if (!addChoiceModal) return;
     addChoiceModal.classList.add("show");
@@ -135,10 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addChoiceModal.setAttribute("aria-hidden", "true");
   }
 
-  // AI modal
-  function openAiResultModal() {
-    openModal(aiResultModal);
-  }
+  function openAiResultModal() { openModal(aiResultModal); }
   function closeAiResultModal() {
     aiFound = [];
     if (aiResultMeta) aiResultMeta.textContent = "";
@@ -147,17 +129,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // ✅ Menu modal logic
+  // Menu modal logic
   // =======================
   function openMenuModal() {
     openModal(menuModal);
-    // default to info tab
     setMenuTab("info");
   }
-
-  function closeMenuModal() {
-    closeModal(menuModal);
-  }
+  function closeMenuModal() { closeModal(menuModal); }
 
   function setMenuTab(which) {
     const isInfo = which === "info";
@@ -176,12 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function doHaptic(type = "impact") {
-    // only if user enabled and tg supports
     if (!tg) return;
     if (settingHaptics && !settingHaptics.checked) return;
 
     try {
-      // Telegram WebApp HapticFeedback
       if (tg.HapticFeedback) {
         if (type === "selection") tg.HapticFeedback.selectionChanged();
         else if (type === "success") tg.HapticFeedback.notificationOccurred("success");
@@ -268,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // AI results modal render
   function renderAiResultsModal(data) {
     aiFound = Array.isArray(data.deadlines) ? data.deadlines : [];
 
@@ -308,7 +283,6 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </label>
       `;
-
       aiResultList.appendChild(row);
     });
   }
@@ -382,12 +356,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // AI PHOTO FLOW (modal)
+  // AI PHOTO FLOW
   // =======================
   async function handlePickedPhoto(file) {
     if (!file) return;
 
-    // if user disabled AI scan UI toggle -> block (UI only, but makes sense)
     if (settingAiScan && !settingAiScan.checked) {
       alert("AI-скан фото вимкнено в Налаштуваннях.");
       return;
@@ -412,6 +385,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
 
+      // ✅ нормальні повідомлення з бекенду
+      if (res.status === 413) {
+        doHaptic("error");
+        alert(data?.message || "Фото завелике. Стисни або зроби інше.");
+        return;
+      }
+      if (res.status === 415) {
+        doHaptic("error");
+        alert(data?.message || "Формат фото не підтримується.");
+        return;
+      }
       if (res.status === 429) {
         doHaptic("error");
         alert(data?.message || "Ліміт AI на сьогодні вичерпаний. Спробуй завтра.");
@@ -420,7 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok || data.error) {
         doHaptic("error");
-        alert("Помилка AI: " + (data.detail || data.error || "unknown"));
+        alert("Помилка AI: " + (data.detail || data.message || data.error || "unknown"));
         return;
       }
 
@@ -517,7 +501,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   // Events
   // =======================
-  // add -> choose sheet
   addBtn?.addEventListener("click", () => {
     doHaptic("selection");
     openAddChoice();
@@ -536,13 +519,15 @@ document.addEventListener("DOMContentLoaded", () => {
   choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
     if (photoInput) {
-      photoInput.value = "";
+      photoInput.value = ""; // ✅ щоб можна було вибрати те саме фото вдруге
       photoInput.click();
     }
   });
 
   photoInput?.addEventListener("change", (e) => {
     handlePickedPhoto(e.target.files?.[0]);
+    // ✅ ще раз чистимо (на всякий)
+    if (photoInput) photoInput.value = "";
   });
 
   cancelAddBtn?.addEventListener("click", () => {
@@ -577,7 +562,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // remove modal
   removeBtn?.addEventListener("click", () => {
     doHaptic("selection");
     fillRemoveList();
@@ -589,7 +573,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === removeModal) closeRemoveModal();
   });
 
-  // AI modal events
   aiCloseBtn?.addEventListener("click", closeAiResultModal);
   aiResultModal?.addEventListener("click", (e) => {
     if (e.target === aiResultModal) closeAiResultModal();
@@ -625,7 +608,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // sort
   sortBtn?.addEventListener("click", () => {
     if (!deadlines.length) return;
 
@@ -641,12 +623,8 @@ document.addEventListener("DOMContentLoaded", () => {
     doHaptic("selection");
   });
 
-  // import
   importBtn?.addEventListener("click", importFromGoogle);
 
-  // =======================
-  // ✅ Menu events
-  // =======================
   menuBtn?.addEventListener("click", () => {
     doHaptic("selection");
     openMenuModal();
@@ -654,7 +632,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   menuCloseBtn?.addEventListener("click", closeMenuModal);
 
-  // close by clicking overlay
   menuModal?.addEventListener("click", (e) => {
     if (e.target === menuModal) closeMenuModal();
   });
@@ -669,7 +646,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setMenuTab("settings");
   });
 
-  // ESC to close topmost modal (menu first, then ai/remove/add sheet)
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
 
