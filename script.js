@@ -6,8 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================
   const tg = window.Telegram?.WebApp || null;
   if (tg) {
-    tg.expand();
     tg.ready?.();
+    tg.expand(); // максимум по висоті в межах WebApp
+    // tg.requestFullscreen?.(); // інколи працює, інколи ні (залежить від клієнта Telegram)
   }
 
   // =======================
@@ -92,13 +93,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // Modal helpers (✅ FIX: block body scroll)
+  // Modal helpers (lock scroll)
   // =======================
   function lockBodyScroll() {
     document.body.style.overflow = "hidden";
   }
   function unlockBodyScroll() {
     document.body.style.overflow = "";
+  }
+
+  function anyModalOpen() {
+    return (
+      document.querySelector(".modal.show") ||
+      document.querySelector(".sheet.show") ||
+      document.querySelector(".menu-modal.show")
+    );
   }
 
   function openModal(el) {
@@ -112,35 +121,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!el) return;
     el.classList.remove("show");
     el.setAttribute("aria-hidden", "true");
-
-    // ✅ якщо жодна модалка не відкрита — повертаємо скрол
-    const anyOpen =
-      document.querySelector(".modal.show") ||
-      document.querySelector(".sheet.show") ||
-      document.querySelector(".menu-modal.show");
-    if (!anyOpen) unlockBodyScroll();
+    if (!anyModalOpen()) unlockBodyScroll();
   }
 
   function openRemoveModal() { openModal(removeModal); }
   function closeRemoveModal() { closeModal(removeModal); }
 
-  function openAddChoice() {
-    if (!addChoiceModal) return;
-    addChoiceModal.classList.add("show");
-    addChoiceModal.setAttribute("aria-hidden", "false");
-    lockBodyScroll();
-  }
-  function closeAddChoice() {
-    if (!addChoiceModal) return;
-    addChoiceModal.classList.remove("show");
-    addChoiceModal.setAttribute("aria-hidden", "true");
-
-    const anyOpen =
-      document.querySelector(".modal.show") ||
-      document.querySelector(".sheet.show") ||
-      document.querySelector(".menu-modal.show");
-    if (!anyOpen) unlockBodyScroll();
-  }
+  function openAddChoice() { openModal(addChoiceModal); }
+  function closeAddChoice() { closeModal(addChoiceModal); }
 
   function openAiResultModal() { openModal(aiResultModal); }
   function closeAiResultModal() {
@@ -156,26 +144,23 @@ document.addEventListener("DOMContentLoaded", () => {
   function openMenuModal() {
     openModal(menuModal);
     setMenuTab("info");
-    // ✅ щоб відкривалось зверху
     const body = menuModal?.querySelector(".menu-body");
     if (body) body.scrollTop = 0;
   }
+
   function closeMenuModal() { closeModal(menuModal); }
 
   function setMenuTab(which) {
     const isInfo = which === "info";
 
-    if (tabInfo) {
-      tabInfo.classList.toggle("active", isInfo);
-      tabInfo.setAttribute("aria-selected", isInfo ? "true" : "false");
-    }
-    if (tabSettings) {
-      tabSettings.classList.toggle("active", !isInfo);
-      tabSettings.setAttribute("aria-selected", !isInfo ? "true" : "false");
-    }
+    tabInfo?.classList.toggle("active", isInfo);
+    tabInfo?.setAttribute("aria-selected", isInfo ? "true" : "false");
 
-    if (paneInfo) paneInfo.classList.toggle("active", isInfo);
-    if (paneSettings) paneSettings.classList.toggle("active", !isInfo);
+    tabSettings?.classList.toggle("active", !isInfo);
+    tabSettings?.setAttribute("aria-selected", !isInfo ? "true" : "false");
+
+    paneInfo?.classList.toggle("active", isInfo);
+    paneSettings?.classList.toggle("active", !isInfo);
   }
 
   function doHaptic(type = "impact") {
@@ -216,9 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="tag">Дедлайн</span>
           </div>
           <h3 class="card-title">${escapeHtml(d.title)}</h3>
-          <div class="meta">
-            <span>${escapeHtml(displayDate)}</span>
-          </div>
+          <div class="meta"><span>${escapeHtml(displayDate)}</span></div>
         </div>
         <div class="due ${status.variant}">
           <div class="label">${status.label}</div>
@@ -375,7 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deadlines: deadlinesArr }),
     });
-
     if (!res.ok) throw new Error("Failed to add AI scanned deadlines");
     return await res.json();
   }
@@ -407,27 +389,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json().catch(() => ({}));
-
       if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
 
-      if (res.status === 413) {
-        doHaptic("error");
-        alert(data?.message || "Фото завелике. Стисни або зроби інше.");
-        return;
-      }
-      if (res.status === 415) {
-        doHaptic("error");
-        alert(data?.message || "Формат фото не підтримується.");
-        return;
-      }
-      if (res.status === 429) {
-        doHaptic("error");
-        alert(data?.message || "Ліміт AI на сьогодні вичерпаний. Спробуй завтра.");
-        return;
-      }
+      if (res.status === 413) return alert(data?.message || "Фото завелике.");
+      if (res.status === 415) return alert(data?.message || "Формат не підтримується.");
+      if (res.status === 429) return alert(data?.message || "Ліміт AI на сьогодні вичерпаний.");
 
       if (!res.ok || data.error) {
-        doHaptic("error");
         alert("Помилка AI: " + (data.detail || data.message || data.error || "unknown"));
         return;
       }
@@ -467,8 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function toDateObj(dateStr) {
-    const normalized = normalizeDateString(dateStr);
-    const parsed = new Date(normalized);
+    const parsed = new Date(normalizeDateString(dateStr));
     if (Number.isNaN(parsed.getTime())) return null;
     return parsed;
   }
@@ -476,16 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function formatForDisplay(dateStr) {
     const d = toDateObj(dateStr);
     if (!d) return dateStr || "без дати";
-    try {
-      return d.toLocaleString("uk-UA", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
+    return d.toLocaleString("uk-UA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
   function pluralDays(n) {
@@ -517,35 +475,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resetAddForm() {
-    if (!addForm) return;
-    addForm.reset();
+    addForm?.reset();
     if (timeInput) timeInput.value = "18:00";
   }
 
   // =======================
   // Events
   // =======================
-  addBtn?.addEventListener("click", () => {
-    doHaptic("selection");
-    openAddChoice();
-  });
+  addBtn?.addEventListener("click", () => { doHaptic("selection"); openAddChoice(); });
 
   closeAddChoiceBtn?.addEventListener("click", closeAddChoice);
-  addChoiceModal?.addEventListener("click", (e) => {
-    if (e.target === addChoiceModal) closeAddChoice();
-  });
+  addChoiceModal?.addEventListener("click", (e) => { if (e.target === addChoiceModal) closeAddChoice(); });
 
-  chooseManualBtn?.addEventListener("click", () => {
-    closeAddChoice();
-    showView("add");
-  });
+  chooseManualBtn?.addEventListener("click", () => { closeAddChoice(); showView("add"); });
 
   choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
-    if (photoInput) {
-      photoInput.value = "";
-      photoInput.click();
-    }
+    if (photoInput) { photoInput.value = ""; photoInput.click(); }
   });
 
   photoInput?.addEventListener("change", (e) => {
@@ -553,28 +499,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (photoInput) photoInput.value = "";
   });
 
-  cancelAddBtn?.addEventListener("click", () => {
-    showView("list");
-    resetAddForm();
-  });
+  cancelAddBtn?.addEventListener("click", () => { showView("list"); resetAddForm(); });
 
   addForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const title = titleInput.value.trim();
     const date = dateInput.value;
     const time = timeInput.value;
 
-    if (!title || !date) {
-      alert("Введи назву і дату");
-      return;
-    }
-
-    const fullDate = formatDateTime(date, time);
+    if (!title || !date) return alert("Введи назву і дату");
 
     try {
       doHaptic("selection");
-      await addDeadlineApi(title, fullDate);
+      await addDeadlineApi(title, formatDateTime(date, time));
       resetAddForm();
       showView("list");
       doHaptic("success");
@@ -592,22 +529,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   closeRemoveBtn?.addEventListener("click", closeRemoveModal);
-  removeModal?.addEventListener("click", (e) => {
-    if (e.target === removeModal) closeRemoveModal();
-  });
+  removeModal?.addEventListener("click", (e) => { if (e.target === removeModal) closeRemoveModal(); });
 
   aiCloseBtn?.addEventListener("click", closeAiResultModal);
-  aiResultModal?.addEventListener("click", (e) => {
-    if (e.target === aiResultModal) closeAiResultModal();
-  });
+  aiResultModal?.addEventListener("click", (e) => { if (e.target === aiResultModal) closeAiResultModal(); });
 
   aiAddSelectedBtn?.addEventListener("click", async () => {
     try {
       const selected = getSelectedAiDeadlines();
-      if (!selected.length) {
-        alert("Вибери хоча б 1 дедлайн ✅");
-        return;
-      }
+      if (!selected.length) return alert("Вибери хоча б 1 дедлайн ✅");
 
       aiAddSelectedBtn.disabled = true;
       aiAddSelectedBtn.textContent = "⏳ Додаю...";
@@ -615,8 +545,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const addRes = await addAiScannedToApi(selected);
       closeAiResultModal();
-
       await loadDeadlines();
+
       doHaptic("success");
       alert(`✅ Додано: ${addRes.added ?? selected.length}`);
     } catch (err) {
@@ -624,10 +554,8 @@ document.addEventListener("DOMContentLoaded", () => {
       doHaptic("error");
       alert("Не вдалося додати дедлайни");
     } finally {
-      if (aiAddSelectedBtn) {
-        aiAddSelectedBtn.disabled = false;
-        aiAddSelectedBtn.textContent = "Додати вибране";
-      }
+      aiAddSelectedBtn.disabled = false;
+      aiAddSelectedBtn.textContent = "Додати вибране";
     }
   });
 
@@ -641,53 +569,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     sortAsc = !sortAsc;
-    if (sortBtn) sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
+    sortBtn.textContent = sortAsc ? "Сортувати ↑" : "Сортувати ↓";
     renderDeadlines();
     doHaptic("selection");
   });
 
   importBtn?.addEventListener("click", importFromGoogle);
 
-  menuBtn?.addEventListener("click", () => {
-    doHaptic("selection");
-    openMenuModal();
-  });
-
+  menuBtn?.addEventListener("click", () => { doHaptic("selection"); openMenuModal(); });
   menuCloseBtn?.addEventListener("click", closeMenuModal);
+  menuModal?.addEventListener("click", (e) => { if (e.target === menuModal) closeMenuModal(); });
 
-  menuModal?.addEventListener("click", (e) => {
-    if (e.target === menuModal) closeMenuModal();
-  });
-
-  tabInfo?.addEventListener("click", () => {
-    doHaptic("selection");
-    setMenuTab("info");
-  });
-
-  tabSettings?.addEventListener("click", () => {
-    doHaptic("selection");
-    setMenuTab("settings");
-  });
+  tabInfo?.addEventListener("click", () => { doHaptic("selection"); setMenuTab("info"); });
+  tabSettings?.addEventListener("click", () => { doHaptic("selection"); setMenuTab("settings"); });
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
 
-    if (menuModal?.classList.contains("show")) {
-      closeMenuModal();
-      return;
-    }
-    if (aiResultModal?.classList.contains("show")) {
-      closeAiResultModal();
-      return;
-    }
-    if (removeModal?.classList.contains("show")) {
-      closeRemoveModal();
-      return;
-    }
-    if (addChoiceModal?.classList.contains("show")) {
-      closeAddChoice();
-      return;
-    }
+    if (menuModal?.classList.contains("show")) return closeMenuModal();
+    if (aiResultModal?.classList.contains("show")) return closeAiResultModal();
+    if (removeModal?.classList.contains("show")) return closeRemoveModal();
+    if (addChoiceModal?.classList.contains("show")) return closeAddChoice();
   });
 
   // =======================
