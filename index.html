@@ -2,9 +2,9 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Нагадайка</title>
-  <link rel="stylesheet" href="style.css?v=204">
+  <link rel="stylesheet" href="style.css?v=205">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0B121C">
@@ -15,21 +15,17 @@
   <div class="app">
 
     <header class="header">
-      <!-- ✅ ОДНА кнопка Меню справа зверху -->
       <div class="header-actions">
         <button id="menuBtn" class="menu-btn" type="button" aria-label="Меню">Меню</button>
       </div>
 
-      <!-- контент по центру -->
       <div class="header-content">
         <div class="bell-wrap logo-raw">
           <img class="icon logo" src="logo.svg" alt="Логотип">
         </div>
 
         <div class="title">Нагадайка</div>
-        <div class="subtitle">
-          «Розумний бот, який пам’ятає про дедлайни, коли ти — ні».
-        </div>
+        <div class="subtitle">«Розумний бот, який пам’ятає про дедлайни, коли ти — ні».</div>
       </div>
     </header>
 
@@ -71,7 +67,7 @@
       </form>
     </div>
 
-    <!-- Модалка видалення -->
+    <!-- Remove modal -->
     <div id="removeModal" class="modal" aria-hidden="true">
       <div class="modal-content">
         <h3 class="section-title">Видалити дедлайн</h3>
@@ -82,7 +78,7 @@
       </div>
     </div>
 
-    <!-- Bottom sheet: вибір способу -->
+    <!-- Add choice sheet -->
     <div id="addChoiceModal" class="sheet" aria-hidden="true">
       <div class="sheet-card">
         <div class="sheet-head">
@@ -97,7 +93,7 @@
       </div>
     </div>
 
-    <!-- ✅ МОДАЛКА з результатами AI -->
+    <!-- AI results modal -->
     <div id="aiResultModal" class="modal" aria-hidden="true">
       <div class="modal-content">
         <h3 class="section-title">Знайдено на фото</h3>
@@ -111,7 +107,7 @@
       </div>
     </div>
 
-    <!-- ✅ MENU MODAL (Tabs: Інфо / Налаштування) -->
+    <!-- MENU MODAL -->
     <div id="menuModal" class="menu-modal" aria-hidden="true">
       <div class="menu-card" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
         <div class="menu-head">
@@ -120,17 +116,14 @@
         </div>
 
         <div class="menu-tabs" role="tablist" aria-label="Меню вкладки">
-          <button id="tabInfo" class="menu-tab active" type="button" role="tab" aria-selected="true">
-            Інфо
-          </button>
-          <button id="tabSettings" class="menu-tab" type="button" role="tab" aria-selected="false">
-            Налаштування
-          </button>
+          <button id="tabInfo" class="menu-tab active" type="button" role="tab" aria-selected="true">Інфо</button>
+          <button id="tabSettings" class="menu-tab" type="button" role="tab" aria-selected="false">Налаштування</button>
         </div>
 
         <div class="menu-body">
           <!-- INFO -->
           <div id="paneInfo" class="menu-pane active" role="tabpanel">
+            <div class="menu-block">
               <div class="menu-h">Нагадайка</div>
               <div class="menu-p">
                 Це міні-застосунок у Telegram для ведення дедлайнів.
@@ -202,8 +195,6 @@
 
           <!-- SETTINGS -->
           <div id="paneSettings" class="menu-pane" role="tabpanel">
-       
-
             <label class="menu-switch">
               <div class="sw-text">
                 <div class="sw-title">AI-скан фото</div>
@@ -221,19 +212,14 @@
               <input id="settingHaptics" type="checkbox" checked>
               <span class="sw-ui"></span>
             </label>
-
-            <div class="menu-note">
-              
-            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ВАЖЛИВО: capture для камери -->
     <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none;">
   </div>
 
-  <script src="script.js?v=19"></script>
+  <script src="script.js?v=20"></script>
 </body>
 </html>
