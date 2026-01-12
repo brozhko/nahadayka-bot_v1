@@ -746,3 +746,49 @@ body{
     max-width: 360px;
   }
 }
+
+/* MENU CARD: обмеження по висоті + внутрішній скрол */
+.menu-card{
+  width: 100%;
+  max-width: 420px;
+
+  /* ✅ головне: не більше висоти екрана */
+  max-height: calc(100vh - 28px);
+  overflow: hidden;
+
+  border-radius: var(--radius-xl);
+  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 28px 90px rgba(0,0,0,0.70);
+  backdrop-filter: var(--blur);
+  padding: 14px;
+
+  /* ✅ хедер зверху, контент скролиться */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ✅ хедер завжди видно (з X) */
+.menu-head{
+  flex: 0 0 auto;
+}
+
+/* ✅ таби теж не скроляться */
+.menu-tabs{
+  flex: 0 0 auto;
+}
+
+/* ✅ скролиться тільки середина */
+.menu-body{
+  flex: 1 1 auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+}
+
+/* трохи комфортніший скролбар (не обов’язково) */
+.menu-body::-webkit-scrollbar{ width: 8px; }
+.menu-body::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
