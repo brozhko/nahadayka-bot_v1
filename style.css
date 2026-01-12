@@ -792,3 +792,32 @@ body{
   background: rgba(255,255,255,0.12);
   border-radius: 999px;
 }
+
+.menu-card{
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100vh - 28px);
+  overflow: hidden;
+
+  border-radius: var(--radius-xl);
+  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 28px 90px rgba(0,0,0,0.70);
+  backdrop-filter: var(--blur);
+  padding: 14px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-head{ flex: 0 0 auto; }
+.menu-tabs{ flex: 0 0 auto; }
+
+.menu-body{
+  flex: 1 1 auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+}
+
+.menu-x{ position: relative; z-index: 5; }
