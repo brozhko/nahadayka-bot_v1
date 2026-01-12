@@ -385,7 +385,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (choosePhotoBtn) choosePhotoBtn.textContent = oldBtnText || "🤖📷 Фото";
 
-      // ✅ нормальні повідомлення з бекенду
       if (res.status === 413) {
         doHaptic("error");
         alert(data?.message || "Фото завелике. Стисни або зроби інше.");
@@ -519,14 +518,13 @@ document.addEventListener("DOMContentLoaded", () => {
   choosePhotoBtn?.addEventListener("click", () => {
     closeAddChoice();
     if (photoInput) {
-      photoInput.value = ""; // ✅ щоб можна було вибрати те саме фото вдруге
+      photoInput.value = "";
       photoInput.click();
     }
   });
 
   photoInput?.addEventListener("change", (e) => {
     handlePickedPhoto(e.target.files?.[0]);
-    // ✅ ще раз чистимо (на всякий)
     if (photoInput) photoInput.value = "";
   });
 
