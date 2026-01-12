@@ -821,3 +821,8 @@ body{
 }
 
 .menu-x{ position: relative; z-index: 5; }
+
+/* перший перемикач без верхнього відступу */
+#paneSettings .menu-switch:first-child{
+  margin-top: 0;
+}
