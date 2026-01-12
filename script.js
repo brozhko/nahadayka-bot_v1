@@ -92,18 +92,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  // Modals helpers
+  // Modal helpers (✅ FIX: block body scroll)
   // =======================
+  function lockBodyScroll() {
+    document.body.style.overflow = "hidden";
+  }
+  function unlockBodyScroll() {
+    document.body.style.overflow = "";
+  }
+
   function openModal(el) {
     if (!el) return;
     el.classList.add("show");
     el.setAttribute("aria-hidden", "false");
+    lockBodyScroll();
   }
 
   function closeModal(el) {
     if (!el) return;
     el.classList.remove("show");
     el.setAttribute("aria-hidden", "true");
+
+    // ✅ якщо жодна модалка не відкрита — повертаємо скрол
+    const anyOpen =
+      document.querySelector(".modal.show") ||
+      document.querySelector(".sheet.show") ||
+      document.querySelector(".menu-modal.show");
+    if (!anyOpen) unlockBodyScroll();
   }
 
   function openRemoveModal() { openModal(removeModal); }
@@ -113,11 +128,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!addChoiceModal) return;
     addChoiceModal.classList.add("show");
     addChoiceModal.setAttribute("aria-hidden", "false");
+    lockBodyScroll();
   }
   function closeAddChoice() {
     if (!addChoiceModal) return;
     addChoiceModal.classList.remove("show");
     addChoiceModal.setAttribute("aria-hidden", "true");
+
+    const anyOpen =
+      document.querySelector(".modal.show") ||
+      document.querySelector(".sheet.show") ||
+      document.querySelector(".menu-modal.show");
+    if (!anyOpen) unlockBodyScroll();
   }
 
   function openAiResultModal() { openModal(aiResultModal); }
@@ -134,6 +156,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function openMenuModal() {
     openModal(menuModal);
     setMenuTab("info");
+    // ✅ щоб відкривалось зверху
+    const body = menuModal?.querySelector(".menu-body");
+    if (body) body.scrollTop = 0;
   }
   function closeMenuModal() { closeModal(menuModal); }
 
