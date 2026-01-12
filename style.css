@@ -37,7 +37,7 @@ html, body { height: 100%; }
 
 body{
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial;
   color: var(--text-1);
   background:
     radial-gradient(1200px 700px at 50% -10%, #1A2438 0%, rgba(26,36,56,0) 55%),
@@ -51,7 +51,7 @@ body{
 .app{
   max-width: 520px;
   margin: 0 auto;
-  padding: 22px 16px 64px;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 64px;
 }
 
 /* =========================
@@ -63,7 +63,6 @@ body{
   padding: 10px 8px 6px;
 }
 
-/* Top-right actions */
 .header-actions{
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 6px);
@@ -73,7 +72,6 @@ body{
   align-items: center;
 }
 
-/* ✅ Menu button (pill) */
 .menu-btn{
   appearance: none;
   border: 1px solid rgba(255,255,255,0.14);
@@ -96,7 +94,6 @@ body{
 }
 .menu-btn:active{ transform: scale(0.98); }
 
-/* логотип-кружок */
 .bell-wrap{
   position: relative;
   width: 88px; height: 88px;
@@ -143,7 +140,7 @@ body{
 }
 
 /* =========================
-   Actions (4 buttons)
+   Actions
    ========================= */
 .actions{
   margin-top: 14px;
@@ -192,7 +189,7 @@ body{
 }
 
 /* =========================
-   Views / Section
+   Views
    ========================= */
 .view{ display: none; }
 .view.active{ display: block; }
@@ -435,7 +432,7 @@ body{
 .ai-col{ width:100%; }
 
 /* =========================
-   ✅ MENU MODAL
+   MENU MODAL
    ========================= */
 .menu-modal{
   position: fixed;
@@ -450,31 +447,33 @@ body{
 }
 .menu-modal.show{ display:flex; }
 
+/* ✅ важливо: ліміт по висоті + внутрішній скрол тільки в menu-body */
 .menu-card{
   width: 100%;
   max-width: 420px;
+  max-height: calc(100vh - 28px);
+  overflow: hidden;
+
   border-radius: var(--radius-xl);
   background: rgba(14, 20, 32, 0.92);
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow: 0 28px 90px rgba(0,0,0,0.70);
   backdrop-filter: var(--blur);
   padding: 14px;
+
+  display: flex;
+  flex-direction: column;
 }
 
-.menu-head{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 4px 4px 10px;
-}
+.menu-head{ flex: 0 0 auto; }
+
 .menu-title{
   font-size: 18px;
   font-weight: 950;
   letter-spacing: .2px;
 }
 
-/* кнопка X */
+/* X */
 .menu-x{
   width: 38px;
   height: 38px;
@@ -490,8 +489,8 @@ body{
 }
 .menu-x:active{ transform: scale(0.97); }
 
-/* tabs */
 .menu-tabs{
+  flex: 0 0 auto;
   display:flex;
   gap: 6px;
   background: rgba(255,255,255,0.05);
@@ -510,23 +509,24 @@ body{
   border-radius: 13px;
   font-weight: 950;
   cursor: pointer;
-  transition: background .15s ease, color .15s ease, transform .08s ease;
 }
-.menu-tab:active{ transform: scale(0.99); }
-
 .menu-tab.active{
-  background:
-    linear-gradient(180deg, rgba(90,169,255,0.22) 0%, rgba(124,92,255,0.14) 100%);
+  background: linear-gradient(180deg, rgba(90,169,255,0.22) 0%, rgba(124,92,255,0.14) 100%);
   color: rgba(255,255,255,0.95);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   border: 1px solid rgba(90,169,255,0.18);
 }
 
-.menu-body{ margin-top: 12px; }
+.menu-body{
+  flex: 1 1 auto;
+  margin-top: 12px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+}
+
 .menu-pane{ display:none; }
 .menu-pane.active{ display:block; }
 
-/* blocks inside menu */
 .menu-block{
   border: 1px solid rgba(255,255,255,0.09);
   background: rgba(255,255,255,0.05);
@@ -535,46 +535,9 @@ body{
   box-shadow: 0 16px 34px rgba(0,0,0,0.40);
   margin-bottom: 12px;
 }
-.menu-h{
-  font-weight: 950;
-  margin: 0 0 6px;
-  font-size: 16px;
-}
-.menu-p{
-  margin: 0;
-  color: rgba(255,255,255,0.78);
-  line-height: 1.35;
-  font-size: 14px;
-}
+.menu-h{ font-weight: 950; margin: 0 0 6px; font-size: 16px; }
+.menu-p{ margin: 0; color: rgba(255,255,255,0.78); line-height: 1.35; font-size: 14px; }
 
-/* kv */
-.menu-kv{
-  border: 1px solid rgba(255,255,255,0.09);
-  background: rgba(255,255,255,0.05);
-  border-radius: 18px;
-  padding: 12px 14px;
-}
-.kv-row{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.kv-row:last-child{ border-bottom: none; }
-.kv-row span{
-  color: rgba(255,255,255,0.72);
-  font-size: 13px;
-}
-.kv-row b{
-  font-size: 13px;
-  font-weight: 950;
-  color: rgba(255,255,255,0.95);
-  text-align:right;
-}
-
-/* switches inside menu */
 .menu-switch{
   display:flex;
   align-items:center;
@@ -586,18 +549,14 @@ body{
   border: 1px solid rgba(255,255,255,0.09);
   margin-bottom: 10px;
 }
-.sw-text{ min-width:0; }
 .sw-title{ font-weight: 950; font-size: 14px; margin-bottom: 4px; }
 .sw-sub{ font-size: 12px; color: rgba(255,255,255,0.70); line-height: 1.25; }
 
-/* hide checkbox */
 .menu-switch input{
   position:absolute;
   opacity:0;
   pointer-events:none;
 }
-
-/* toggle ui */
 .sw-ui{
   width: 46px;
   height: 28px;
@@ -633,68 +592,19 @@ body{
   color: rgba(255,255,255,0.62);
 }
 
-/* =========================
-   ✅ ADDITIONS: INFO / PLANS
-   ========================= */
-.info-grid{
-  display: grid;
-  gap: 10px;
-  margin-bottom: 12px;
-}
+.info-grid{ display: grid; gap: 10px; margin-bottom: 12px; }
+.info-card{ border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.05); border-radius: 18px; padding: 12px 14px; }
+.info-title{ font-weight: 950; font-size: 14px; margin-bottom: 6px; }
+.info-text{ color: rgba(255,255,255,0.78); font-size: 13px; line-height: 1.35; }
 
-.info-card{
-  border: 1px solid rgba(255,255,255,0.09);
-  background: rgba(255,255,255,0.05);
-  border-radius: 18px;
-  padding: 12px 14px;
-}
-
-.info-title{
-  font-weight: 950;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.info-text{
-  color: rgba(255,255,255,0.78);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.plan-wrap{
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.plan-card{
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.05);
-  border-radius: 18px;
-  padding: 12px 14px;
-}
-
+.plan-wrap{ display: grid; gap: 10px; margin-top: 10px; }
+.plan-card{ border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); border-radius: 18px; padding: 12px 14px; }
 .plan-card.premium{
   border-color: rgba(90,169,255,0.22);
-  background:
-    linear-gradient(180deg, rgba(90,169,255,0.12) 0%, rgba(124,92,255,0.10) 100%),
-    rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, rgba(90,169,255,0.12) 0%, rgba(124,92,255,0.10) 100%), rgba(255,255,255,0.05);
 }
-
-.plan-top{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.plan-name{
-  font-weight: 1000;
-  letter-spacing: .6px;
-  font-size: 13px;
-}
-
+.plan-top{ display:flex; align-items:center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.plan-name{ font-weight: 1000; letter-spacing: .6px; font-size: 13px; }
 .plan-badge{
   font-size: 12px;
   font-weight: 950;
@@ -709,129 +619,12 @@ body{
   background: rgba(124,92,255,0.16);
   color: #D7CFFF;
 }
-
-.plan-list{
-  margin: 0;
-  padding-left: 18px;
-  color: rgba(255,255,255,0.80);
-  font-size: 13px;
-  line-height: 1.4;
-}
+.plan-list{ margin: 0; padding-left: 18px; color: rgba(255,255,255,0.80); font-size: 13px; line-height: 1.4; }
 .plan-list li{ margin: 6px 0; }
 
-.plan-note{
-  margin-top: 8px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.62);
-}
-
-/* =========================
-   Mobile tweaks
-   ========================= */
 @media (max-width: 420px){
   .title{ font-size: 30px; }
   .subtitle{ font-size: 14px; }
-
-  .header-actions{
-    top: calc(env(safe-area-inset-top, 0px) + 4px);
-    right: 10px;
-  }
-
-  .menu-btn{
-    padding: 9px 12px;
-    font-size: 12px;
-  }
-
-  .menu-card{
-    max-width: 360px;
-  }
-}
-
-/* MENU CARD: обмеження по висоті + внутрішній скрол */
-.menu-card{
-  width: 100%;
-  max-width: 420px;
-
-  /* ✅ головне: не більше висоти екрана */
-  max-height: calc(100vh - 28px);
-  overflow: hidden;
-
-  border-radius: var(--radius-xl);
-  background: rgba(14, 20, 32, 0.92);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 28px 90px rgba(0,0,0,0.70);
-  backdrop-filter: var(--blur);
-  padding: 14px;
-
-  /* ✅ хедер зверху, контент скролиться */
-  display: flex;
-  flex-direction: column;
-}
-
-/* ✅ хедер завжди видно (з X) */
-.menu-head{
-  flex: 0 0 auto;
-}
-
-/* ✅ таби теж не скроляться */
-.menu-tabs{
-  flex: 0 0 auto;
-}
-
-/* ✅ скролиться тільки середина */
-.menu-body{
-  flex: 1 1 auto;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 10px;
-}
-
-/* трохи комфортніший скролбар (не обов’язково) */
-.menu-body::-webkit-scrollbar{ width: 8px; }
-.menu-body::-webkit-scrollbar-thumb{
-  background: rgba(255,255,255,0.12);
-  border-radius: 999px;
-}
-
-.menu-card{
-  width: 100%;
-  max-width: 420px;
-  max-height: calc(100vh - 28px);
-  overflow: hidden;
-
-  border-radius: var(--radius-xl);
-  background: rgba(14, 20, 32, 0.92);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 28px 90px rgba(0,0,0,0.70);
-  backdrop-filter: var(--blur);
-  padding: 14px;
-
-  display: flex;
-  flex-direction: column;
-}
-
-.menu-head{ flex: 0 0 auto; }
-.menu-tabs{ flex: 0 0 auto; }
-
-.menu-body{
-  flex: 1 1 auto;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 10px;
-}
-
-.menu-x{ position: relative; z-index: 5; }
-
-/* перший перемикач без верхнього відступу */
-#paneSettings .menu-switch:first-child{
-  margin-top: 0;
-}
-
-#paneSettings{
-  margin-top: 0;
-  padding-top: 0;
-}
-
-#paneSettings .menu-switch:first-child{
-  margin-top: 0;
+  .menu-card{ max-width: 360px; }
+  .menu-btn{ padding: 9px 12px; font-size: 12px; }
 }
