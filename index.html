@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Нагадайка</title>
-  <link rel="stylesheet" href="style.css?v=207">
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#0B121C">
-  <link rel="icon" href="logo.svg">
+
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0B121C" />
+  <link rel="icon" href="logo.svg" />
+
+  <link rel="stylesheet" href="style.css?v=999" />
 </head>
 
 <body>
@@ -21,7 +24,7 @@
 
       <div class="header-content">
         <div class="bell-wrap logo-raw">
-          <img class="icon logo" src="logo.svg" alt="Логотип">
+          <img class="icon logo" src="logo.svg" alt="Логотип" />
         </div>
 
         <div class="title">Нагадайка</div>
@@ -46,17 +49,17 @@
       <form id="addForm" class="form-card">
         <div class="field">
           <label for="title">Назва</label>
-          <input id="title" name="title" class="input" type="text" placeholder="Наприклад, Здати проєкт" required>
+          <input id="title" name="title" class="input" type="text" placeholder="Наприклад, Здати проєкт" required />
         </div>
 
         <div class="grid-2">
           <div class="field">
             <label for="date">Дата</label>
-            <input id="date" name="date" class="input" type="date" required>
+            <input id="date" name="date" class="input" type="date" required />
           </div>
           <div class="field">
             <label for="time">Час</label>
-            <input id="time" name="time" class="input" type="time" value="18:00">
+            <input id="time" name="time" class="input" type="time" value="18:00" />
           </div>
         </div>
 
@@ -123,6 +126,7 @@
         <div class="menu-body">
           <!-- INFO -->
           <div id="paneInfo" class="menu-pane active" role="tabpanel">
+
             <div class="menu-block">
               <div class="menu-h">Нагадайка</div>
               <div class="menu-p">
@@ -200,7 +204,7 @@
                 <div class="sw-title">AI-скан фото</div>
                 <div class="sw-sub">Показувати результат після аналізу</div>
               </div>
-              <input id="settingAiScan" type="checkbox" checked>
+              <input id="settingAiScan" type="checkbox" checked />
               <span class="sw-ui"></span>
             </label>
 
@@ -209,17 +213,19 @@
                 <div class="sw-title">Нагадування</div>
                 <div class="sw-sub">Легкий відгук при натисканні</div>
               </div>
-              <input id="settingHaptics" type="checkbox" checked>
+              <input id="settingHaptics" type="checkbox" checked />
               <span class="sw-ui"></span>
             </label>
+
+            <!-- ✅ ВИДАЛЕНО: пустий блок menu-note (саме він робив "порожній блок") -->
           </div>
         </div>
       </div>
     </div>
 
-    <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+    <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none;" />
   </div>
 
-  <script src="script.js?v=22"></script>
+  <script src="script.js?v=999"></script>
 </body>
 </html>
